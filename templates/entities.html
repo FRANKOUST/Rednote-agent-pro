@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ app_name }} Entities</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #f6f1ea; color: #1b1b1b; }
+      .wrap { max-width: 1200px; margin: 0 auto; padding: 32px; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+      .card { background: #ffffff; border-radius: 20px; padding: 20px; border: 1px solid #ead8c8; }
+      h1, h2 { margin-top: 0; }
+      ul { padding-left: 18px; }
+      a { color: #d94841; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <p><a href="/">Back to dashboard</a></p>
+      <h1>{{ app_name }} Entities</h1>
+      <div class="grid">
+        <div class="card">
+          <h2>Source Posts</h2>
+          <ul>
+            {% for item in source_posts %}
+              <li><a href="/console/source-posts/{{ item.id }}">{{ item.keyword }} - {{ item.title }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card">
+          <h2>Analysis Reports</h2>
+          <ul>
+            {% for item in analysis_reports %}
+              <li><a href="/console/analysis-reports/{{ item.id }}">{{ item.summary }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card">
+          <h2>Topic Suggestions</h2>
+          <ul>
+            {% for item in topic_suggestions %}
+              <li><a href="/console/topic-suggestions/{{ item.id }}">{{ item.title }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card">
+          <h2>Image Assets</h2>
+          <ul>
+            {% for item in image_assets %}
+              <li><a href="/console/image-assets/{{ item.id }}">{{ item.provider }} - {{ item.path }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

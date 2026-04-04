@@ -1,0 +1,26 @@
+[project]
+name = "xiaohongshu-content-platform"
+version = "0.1.0"
+description = "Portfolio-ready Xiaohongshu content mining and generation platform"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.115.0",
+  "httpx>=0.27.2",
+  "jinja2>=3.1.4",
+  "python-multipart>=0.0.9",
+  "pydantic-settings>=2.6.1",
+  "sqlalchemy>=2.0.36",
+  "uvicorn>=0.32.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.3",
+]
+
+# 新增核心修复配置：显式指定打包的包，解决扁平结构多顶级目录问题
+[tool.setuptools]
+# 仅声明项目核心源码包（app），其他为资源目录无需加入
+packages = ["app"]
+# 可选：指定包的查找路径（当前根目录，适配扁平结构）
+package-dir = {"." = "."}

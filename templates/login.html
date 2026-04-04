@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ app_name }} Login</title>
+    <style>
+      body { font-family: Arial, sans-serif; background: #f6f1ea; display: grid; place-items: center; min-height: 100vh; margin: 0; }
+      .card { background: white; border-radius: 20px; padding: 28px; width: 360px; border: 1px solid #ead8c8; }
+      input { width: 100%; padding: 12px; border: 1px solid #d9c3b1; border-radius: 12px; margin: 12px 0; }
+      button { background: #d94841; color: white; border: 0; border-radius: 999px; padding: 10px 16px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>{{ app_name }}</h1>
+      <p>Operator login</p>
+      <form method="post" action="/login">
+        <label for="operator_key">Operator Key</label>
+        <input id="operator_key" name="operator_key" type="password" />
+        <button type="submit">Login</button>
+      </form>
+    </div>
+  </body>
+</html>

@@ -76,6 +76,28 @@ def image_asset_detail(request: Request, image_id: str) -> HTMLResponse:
     return templates.TemplateResponse(request, "entity_detail.html", context)
 
 
+@router.get("/console/runs/{run_id}", response_class=HTMLResponse)
+def run_detail(request: Request, run_id: str) -> HTMLResponse:
+    context = {
+        "request": request,
+        "app_name": get_settings().app_name,
+        "title": "Workflow Run",
+        "item": get_pipeline_service().get_run(run_id),
+    }
+    return templates.TemplateResponse(request, "entity_detail.html", context)
+
+
+@router.get("/console/runs/{run_id}/diagnostics", response_class=HTMLResponse)
+def run_diagnostics(request: Request, run_id: str) -> HTMLResponse:
+    context = {
+        "request": request,
+        "app_name": get_settings().app_name,
+        "title": "Diagnostics",
+        "items": get_pipeline_service().get_run_diagnostics(run_id)["items"],
+    }
+    return templates.TemplateResponse(request, "diagnostics.html", context)
+
+
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(request, "login.html", {"request": request, "app_name": get_settings().app_name})

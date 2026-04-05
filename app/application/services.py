@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy import func, select
 
 from app.application.dispatcher import build_dispatcher
+from app.application.external_worker import build_external_worker_adapter
 from app.core.config import get_settings
 from app.db.models import AnalysisReport, AuditLog, ContentDraft, ImageAsset, PublishJob, SourcePost, SyncRecord, TopicSuggestion, WorkflowRun, WorkflowStageEvent
 from app.db.session import session_scope
@@ -237,7 +238,7 @@ class PipelineService:
     def list_drafts(self) -> list[dict[str, Any]]:
         with session_scope() as session:
             drafts = session.scalars(select(ContentDraft).order_by(ContentDraft.id)).all()
-            return [{"id": d.id, "title": d.title, "status": d.status, "review_notes": d.review_notes} for d in drafts]
+            return [{"id": d.id, "title": d.title, "status": d.status, "review_notes": d.review_notes, "revision_count": d.revision_count} for d in drafts]
 
     def list_source_posts(self, run_id: str | None = None) -> dict[str, list[dict[str, Any]]]:
         with session_scope() as session:
@@ -428,6 +429,25 @@ class PipelineService:
             self._log(session, "draft.rejected", "content_draft", draft.id, {"review_notes": review_notes})
             return {"id": draft.id, "status": draft.status, "review_notes": draft.review_notes}
 
+    def regenerate_draft(self, draft_id: str, review_notes: str = "") -> dict[str, Any]:
+        with session_scope() as session:
+            draft = session.get(ContentDraft, draft_id)
+            if draft is None:
+                raise ValueError(f"Unknown draft: {draft_id}")
+            if ContentDraftStatus(draft.status) != ContentDraftStatus.REJECTED:
+                raise ValueError("Only rejected drafts can be regenerated.")
+            draft.body = draft.body + "\n\n[Revision] Strengthened hook and tightened opening lines."
+            draft.review_notes = review_notes
+            draft.revision_count += 1
+            draft.status = ContentDraftStatus.REVIEW_PENDING.value
+            self._log(session, "draft.regenerated", "content_draft", draft.id, {"review_notes": review_notes, "revision_count": draft.revision_count})
+            return {
+                "id": draft.id,
+                "status": draft.status,
+                "review_notes": draft.review_notes,
+                "revision_count": draft.revision_count,
+            }
+
     def publish_draft(self, draft_id: str) -> dict[str, Any]:
         with session_scope() as session:
             draft = session.get(ContentDraft, draft_id)
@@ -530,6 +550,15 @@ class PipelineService:
                 "sync_records": session.scalar(select(func.count()).select_from(SyncRecord)) or 0,
                 "audit_logs": session.scalar(select(func.count()).select_from(AuditLog)) or 0,
             }
+
+    def inspect_external_worker_job(self, job_id: str) -> dict[str, Any]:
+        return build_external_worker_adapter().inspect(job_id)
+
+    def cancel_external_worker_job(self, job_id: str) -> dict[str, Any]:
+        return build_external_worker_adapter().cancel(job_id)
+
+    def requeue_external_worker_job(self, job_id: str) -> dict[str, Any]:
+        return build_external_worker_adapter().requeue(job_id)
 
     def provider_diagnostics(self) -> dict[str, dict[str, Any]]:
         settings = get_settings()

@@ -87,3 +87,7 @@ Deliver a runnable foundation with a mocked end-to-end pipeline, shared REST/MCP
 - Added provider health endpoint and surfaced provider health in the dashboard
 - Verified the project with `pytest -q` (`40 passed`)
 - Rewrote `README.md` into a detailed project guide covering architecture, runtime modes, APIs, MCP tools, auth, observability, testing, and extension paths
+- Added topic/image detail pages, run diagnostics pages, and a provider health endpoint for operator visibility
+- Added model output schemas, prompt template versioning, and draft regeneration support
+- Added external worker inspect/cancel/requeue plus dead-letter-like handling
+- Expanded test coverage to `53 passed`

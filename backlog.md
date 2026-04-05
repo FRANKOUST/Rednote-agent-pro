@@ -2,13 +2,13 @@
 
 ## Immediate
 
-- None. Current delivery meets the phase-one completion standard with mock flows, safe live shells, auth, observability, and portfolio packaging.
+- Validate live provider shells against real OpenAI, Feishu, Xiaohongshu publish, and Playwright-authenticated environments.
+- Record a full small-scale live validation cycle in `SMALL_SCALE_VALIDATION_REPORT.md`.
 
 ## Next
 
-- Validate live provider shells against real OpenAI, Feishu, Xiaohongshu publish, and Playwright-authenticated environments.
-- Add real queue-backed worker backend beyond subprocess/file adapters.
-- Add topic, report, and image detail pages to the Web Console.
+- Add a durable distributed queue backend if small-scale operations exceed subprocess/file worker capacity.
+- Refine real provider behavior based on live validation findings.
 
 ## Later
 

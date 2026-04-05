@@ -59,3 +59,36 @@ def test_subprocess_worker_adapter_spawns_process(monkeypatch, tmp_path: Path) -
     assert handle.status == "queued"
     assert handle.adapter == "subprocess-worker-adapter"
     assert called["value"] is True
+
+
+def test_failed_manifest_moves_to_dead_letter(tmp_path: Path) -> None:
+    reset_db_state()
+    os.environ["XHS_WORKER_QUEUE_DIR"] = str(tmp_path / "queue")
+    os.environ["XHS_WORKER_DEAD_LETTER_DIR"] = str(tmp_path / "dead")
+
+    from app.application.worker_runner import run_manifest
+
+    queue_dir = tmp_path / "queue"
+    queue_dir.mkdir(parents=True, exist_ok=True)
+    manifest = queue_dir / "job.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "job_id": "job",
+                "task_name": "unknown_task",
+                "args": [],
+                "kwargs": {},
+                "status": "queued",
+                "attempts": 2,
+                "max_attempts": 3,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    run_manifest(str(manifest))
+
+    dead_manifest = tmp_path / "dead" / "job.json"
+    assert dead_manifest.exists()
+    payload = json.loads(dead_manifest.read_text(encoding="utf-8"))
+    assert payload["status"] == "dead_letter"

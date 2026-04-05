@@ -36,11 +36,16 @@ class Settings(BaseSettings):
     xhs_publish_api_token: str = ""
     auth_enabled: bool = False
     operator_api_key: str = ""
+    viewer_api_key: str = ""
+    reviewer_api_key: str = ""
+    admin_api_key: str = ""
     operator_session_cookie_name: str = "operator_session"
     request_id_header_name: str = "X-Request-ID"
     log_level: str = "INFO"
     worker_adapter_kind: str = "subprocess"
     worker_queue_dir: str = "./data/worker-queue"
+    worker_dead_letter_dir: str = "./data/worker-dead-letter"
+    worker_max_attempts: int = 3
     team_slug: str = Field(default="internal-team")
 
     model_config = SettingsConfigDict(env_prefix="XHS_", extra="ignore")

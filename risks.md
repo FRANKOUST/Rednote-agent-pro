@@ -8,14 +8,14 @@
 - OpenSpec change names created during early planning do not fully match the final canonical breakdown requested by the product direction.
 - Real provider implementations still lack credentials and platform permissions, so safe stubs remain the active path.
 - The external worker adapter now writes queue manifests safely, but no standalone worker process consumes them yet.
-- Entity-level REST and MCP reads now exist, but the Web Console still lacks dedicated pages for those entity views.
 - Subprocess-backed external worker dispatch now exists, but it is still a local-process pattern rather than a durable distributed queue backend.
+- Remaining blocker class is external validation: live provider and small-scale real-operation verification require credentials, approved accounts, and safe target environments.
 
 ## Residual Risks At Completion
 
 - Live provider shells still need validation against real credentials and platform behavior.
 - The subprocess/file-backed worker adapters are suitable for safe local execution but not yet a durable production queue.
-- Topic and image entities still expose richer detail through API/MCP than through the Web Console.
+- The subprocess/file-backed worker adapters are suitable for controlled small-scale operation but not ideal for higher-scale sustained workloads.
 
 ## Mitigations
 

@@ -109,6 +109,14 @@ def reject_draft(draft_id: str, request: DraftReviewRequest) -> dict:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@router.post("/drafts/{draft_id}/regenerate")
+def regenerate_draft(draft_id: str, request: DraftReviewRequest) -> dict:
+    try:
+        return get_pipeline_service().regenerate_draft(draft_id, request.review_notes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post("/drafts/{draft_id}/publish")
 def publish_draft(draft_id: str) -> dict:
     try:
@@ -145,3 +153,18 @@ def provider_diagnostics() -> dict:
 @router.get("/providers/health")
 def provider_health() -> dict:
     return get_pipeline_service().provider_health()
+
+
+@router.get("/external-workers/jobs/{job_id}")
+def inspect_external_worker_job(job_id: str) -> dict:
+    return get_pipeline_service().inspect_external_worker_job(job_id)
+
+
+@router.post("/external-workers/jobs/{job_id}/cancel")
+def cancel_external_worker_job(job_id: str) -> dict:
+    return get_pipeline_service().cancel_external_worker_job(job_id)
+
+
+@router.post("/external-workers/jobs/{job_id}/requeue")
+def requeue_external_worker_job(job_id: str) -> dict:
+    return get_pipeline_service().requeue_external_worker_job(job_id)

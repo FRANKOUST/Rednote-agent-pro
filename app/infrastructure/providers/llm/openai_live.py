@@ -4,9 +4,11 @@ import json
 
 import httpx
 
+from app.domain.model_schemas import AnalysisResultSchema, DraftResultSchema, TopicSuggestionListSchema
 from app.core.config import get_settings
 from app.domain.models import AnalysisPayload, DraftPayload, SourcePostPayload, TopicPayload
 from app.infrastructure.providers.llm.openai_safe_stub import OpenAISafeLLMStubProvider
+from app.infrastructure.providers.llm.prompt_templates import build_analysis_prompt, build_draft_prompt, build_topic_prompt
 
 
 class OpenAILiveLLMProvider:
@@ -17,44 +19,43 @@ class OpenAILiveLLMProvider:
         self.safe = OpenAISafeLLMStubProvider()
 
     def analyze(self, posts: list[SourcePostPayload]) -> AnalysisPayload:
-        prompt = {
-            "task": "analyze",
-            "posts": [
+        prompt = build_analysis_prompt(
+            [
                 {"title": post.title, "content": post.content, "tags": post.tags, "likes": post.likes, "favorites": post.favorites, "comments": post.comments}
                 for post in posts
-            ],
-        }
+            ]
+        )
         try:
-            data = self._chat_json(prompt)
+            data = AnalysisResultSchema.model_validate(self._chat_json(prompt))
             return AnalysisPayload(
-                summary=data["summary"],
-                top_keywords=data["top_keywords"],
-                top_tags=data["top_tags"],
-                title_patterns=data["title_patterns"],
-                audience_insights=data["audience_insights"],
+                summary=data.summary,
+                top_keywords=data.top_keywords,
+                top_tags=data.top_tags,
+                title_patterns=data.title_patterns,
+                audience_insights=data.audience_insights,
             )
         except Exception:
             return self.safe.analyze(posts)
 
     def suggest_topics(self, analysis: AnalysisPayload) -> list[TopicPayload]:
-        prompt = {"task": "topics", "analysis": analysis.__dict__}
+        prompt = build_topic_prompt(analysis.__dict__)
         try:
-            data = self._chat_json(prompt)
-            return [TopicPayload(title=item["title"], rationale=item["rationale"], angle=item["angle"]) for item in data["topics"]]
+            data = TopicSuggestionListSchema.model_validate(self._chat_json(prompt))
+            return [TopicPayload(title=item.title, rationale=item.rationale, angle=item.angle) for item in data.topics]
         except Exception:
             return self.safe.suggest_topics(analysis)
 
     def generate_draft(self, topic: TopicPayload, analysis: AnalysisPayload) -> DraftPayload:
-        prompt = {"task": "draft", "topic": topic.__dict__, "analysis": analysis.__dict__}
+        prompt = build_draft_prompt(topic.__dict__, analysis.__dict__)
         try:
-            data = self._chat_json(prompt)
+            data = DraftResultSchema.model_validate(self._chat_json(prompt))
             return DraftPayload(
-                title=data["title"],
-                body=data["body"],
-                tags=data["tags"],
-                cta=data["cta"],
-                image_prompt=data["image_prompt"],
-                content_type=data["content_type"],
+                title=data.title,
+                body=data.body,
+                tags=data.tags,
+                cta=data.cta,
+                image_prompt=data.image_prompt,
+                content_type=data.content_type,
             )
         except Exception:
             return self.safe.generate_draft(topic, analysis)

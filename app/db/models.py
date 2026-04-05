@@ -91,6 +91,7 @@ class ContentDraft(Base):
     image_prompt: Mapped[str] = mapped_column(Text, default="")
     content_type: Mapped[str] = mapped_column(String(64), default="note")
     review_notes: Mapped[str] = mapped_column(Text, default="")
+    revision_count: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class ImageAsset(Base):

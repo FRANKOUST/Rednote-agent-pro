@@ -41,15 +41,52 @@ async def operator_auth_middleware(request: Request, call_next):
     if path == "/api/health" or path.startswith("/static") or path == "/login":
         return await call_next(request)
 
+    def resolve_role(key: str) -> str | None:
+        if key and settings.admin_api_key and key == settings.admin_api_key:
+            return "admin"
+        if key and settings.reviewer_api_key and key == settings.reviewer_api_key:
+            return "reviewer"
+        if key and settings.operator_api_key and key == settings.operator_api_key:
+            return "operator"
+        if key and settings.viewer_api_key and key == settings.viewer_api_key:
+            return "viewer"
+        if key and settings.operator_api_key and key == settings.operator_api_key:
+            return "operator"
+        return None
+
+    def is_read_only(method: str) -> bool:
+        return method.upper() == "GET"
+
+    def allowed(role: str, method: str, req_path: str) -> bool:
+        if role == "admin":
+            return True
+        if role == "viewer":
+            return is_read_only(method)
+        if role == "reviewer":
+            if is_read_only(method):
+                return True
+            return "/approve" in req_path or "/reject" in req_path
+        if role == "operator":
+            if is_read_only(method):
+                return True
+            return "/publish" not in req_path
+        return False
+
     if path.startswith("/api") or path.startswith("/mcp"):
         provided = request.headers.get("X-Operator-Key", "")
-        if not settings.operator_api_key or provided != settings.operator_api_key:
+        role = resolve_role(provided)
+        if role is None:
             return JSONResponse(status_code=401, content={"detail": "Unauthorized operator access"})
+        request.state.operator_role = role
+        if not allowed(role, request.method, path):
+            return JSONResponse(status_code=403, content={"detail": "Forbidden for operator role"})
 
     if path == "/" or path.startswith("/console"):
         provided = request.headers.get("X-Operator-Key", "")
         session_cookie = request.cookies.get(settings.operator_session_cookie_name, "")
-        if provided == settings.operator_api_key or session_cookie == settings.operator_api_key:
+        role = resolve_role(provided) or resolve_role(session_cookie)
+        if role is not None:
+            request.state.operator_role = role
             return await call_next(request)
         return RedirectResponse(url="/login", status_code=303)
 

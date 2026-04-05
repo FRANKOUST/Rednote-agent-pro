@@ -439,6 +439,8 @@ uvicorn app.main:app --reload
 - `/console/analysis-reports/{id}`
 - `/console/topic-suggestions/{id}`
 - `/console/image-assets/{id}`
+- `/console/runs/{id}`
+- `/console/runs/{id}/diagnostics`
 
 ## 13. REST API 概览
 
@@ -539,7 +541,7 @@ pytest -q
 
 当前结果：
 
-- `40 passed`
+- `53 passed`
 
 测试覆盖重点：
 

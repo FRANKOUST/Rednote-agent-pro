@@ -1,69 +1,142 @@
 # Rednote Agent Pro
 
-> A provider-oriented Xiaohongshu content operations system built for **spec-driven**, **agent-assisted**, and **small-scale controllable** development.
+> 一个面向 **小红书内容采集、分析、生成、审核、发布与同步** 的平台型工程。  
+> 使用 **OpenSpec 做规格驱动**，使用 **oh-my-codex 做代理化执行**，目标不是“一次性 Demo”，而是可持续演进的项目骨架。
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](#getting-started)
-[![FastAPI](https://img.shields.io/badge/FastAPI-REST%20%2B%20MCP-009688)](#architecture)
-[![Tests](https://img.shields.io/badge/tests-54%20passed-success)](#quality-status)
-[![Safety](https://img.shields.io/badge/publish-manual%20review%20first-orange)](#safety-defaults)
-
----
-
-## Table of Contents
-
-- [What this project is](#what-this-project-is)
-- [Why this repo is different](#why-this-repo-is-different)
-- [Architecture](#architecture)
-- [Core capabilities](#core-capabilities)
-- [How to develop this project with OpenSpec + oh-my-codex](#how-to-develop-this-project-with-openspec--oh-my-codex)
-- [Recommended day-to-day workflow](#recommended-day-to-day-workflow)
-- [Getting started](#getting-started)
-- [Environment configuration](#environment-configuration)
-- [Run the system](#run-the-system)
-- [REST / MCP / Web Console](#rest--mcp--web-console)
-- [Repository structure](#repository-structure)
-- [Safety defaults](#safety-defaults)
-- [Quality status](#quality-status)
-- [Documentation map](#documentation-map)
-- [Current real-world blockers](#current-real-world-blockers)
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-blue" alt="Python" />
+  <img src="https://img.shields.io/badge/FastAPI-REST%20%2B%20MCP-009688" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/测试-54%20passed-success" alt="tests" />
+  <img src="https://img.shields.io/badge/发布策略-默认人工审核-orange" alt="publish policy" />
+</p>
 
 ---
 
-## What this project is
+## 目录
 
-**Rednote Agent Pro** is a modular Xiaohongshu workflow system for:
-
-- collecting source posts from Xiaohongshu
-- analyzing high-performing content patterns
-- generating topics and drafts with configurable model providers
-- reviewing before publish
-- recording publish jobs, sync records, diagnostics, and audits
-- syncing outputs to Feishu through CLI-based adapters
-
-This repository is intentionally designed as a **single business hub** with multiple operator surfaces:
-
-- **REST API**
-- **MCP tools**
-- **Web Console**
-
-All three surfaces share the same application service layer instead of duplicating business logic.
-
----
-
-## Why this repo is different
-
-This repo is not just “an AI app.” It is structured for **long-running, spec-first project delivery**.
-
-It combines two workflows:
-
-1. **OpenSpec** → defines what should be built
-2. **oh-my-codex** → helps execute the work with disciplined agent workflows, skills, plans, and verification
-
-That combination is the main development philosophy of this project.
+- [项目简介](#项目简介)
+- [为什么这个项目值得继续做](#为什么这个项目值得继续做)
+- [核心能力](#核心能力)
+- [系统架构](#系统架构)
+- [OpenSpec + oh-my-codex 开发方式](#openspec--oh-my-codex-开发方式)
+- [推荐开发流程](#推荐开发流程)
+- [快速开始](#快速开始)
+- [环境变量](#环境变量)
+- [运行入口](#运行入口)
+- [接口与操作台](#接口与操作台)
+- [仓库结构](#仓库结构)
+- [安全策略](#安全策略)
+- [当前质量状态](#当前质量状态)
+- [文档索引](#文档索引)
+- [当前真实阻塞项](#当前真实阻塞项)
 
 ---
 
-## Architecture
+## 项目简介
+
+**Rednote Agent Pro** 是一个围绕“小红书内容工作流”构建的工程化系统，覆盖以下主链路：
+
+```text
+采集 -> 分析 -> 选题 -> 草稿 -> 配图 -> 审核 -> 发布 -> 同步
+```
+
+它不是把多个脚本拼起来，而是一个明确分层、可测试、可观测、可扩展的平台：
+
+- 有统一的 **业务中枢**：`PipelineService`
+- 有统一的 **扩展机制**：provider / adapter / registry
+- 有统一的 **操作入口**：REST / MCP / Web Console
+- 有统一的 **审计与诊断**：run、sync、audit、health、diagnostics
+
+这个项目适合用于：
+
+- 学习 AI Agent + 平台架构如何结合
+- 学习如何用 provider 机制接入外部系统
+- 学习如何把“需求 → 规格 → 实现 → 测试 → 文档”做成闭环
+- 作为作品集中的“工程化 AI 系统”项目展示
+
+---
+
+## 为什么这个项目值得继续做
+
+很多 AI 项目只能展示“我调通了一个模型”或者“我写了一个自动化脚本”。
+
+这个项目更强调的是：
+
+### 1. 平台化，而不是脚本化
+
+不是把 Scrapling、lark-cli、模型 SDK 直接塞进业务代码，而是全部通过 provider 边界接入。
+
+### 2. 规格驱动，而不是边写边猜
+
+通过 **OpenSpec** 管理设计、规格、任务和验收边界，避免项目随着对话推进不断跑偏。
+
+### 3. 代理协作，而不是无纪律编码
+
+通过 **oh-my-codex** 的技能、计划、验证、调试流程，让代理真正成为“长期开发协作者”，而不是一次性补丁工具。
+
+### 4. 安全可控，而不是默认激进自动化
+
+默认：
+
+- 干跑优先
+- 人工审核优先
+- 自动发布默认关闭
+- 小规模真实验证优先
+
+这让它更像一个真实项目，而不是只适合截图展示的演示品。
+
+---
+
+## 核心能力
+
+### 1）采集能力：`scrapling_xhs`
+
+当前已接入 Scrapling 作为内部 collector provider，支持：
+
+- `search`
+- `detail`
+
+并具备：
+
+- fixture / dry-run 路径
+- selector / extractor 归一化
+- 失败分类
+- 结构化 diagnostics
+- 幂等入库与去重
+
+### 2）同步能力：`feishu_cli`
+
+当前已接入 `lark-cli` 作为统一飞书同步通道，支持：
+
+- Base 优先同步模式
+- dry-run
+- 命令构建
+- stdout / stderr 捕获
+- SyncRun / SyncRecord 持久化
+- 结构化 diagnostics
+
+### 3）模型能力：`openai_compatible` / `custom_model_router`
+
+当前已支持通过环境变量切换模型服务商：
+
+- `api_key`
+- `base_url`
+- `model`
+- `timeout`
+- `retries`
+- `temperature`
+
+覆盖阶段：
+
+- analyze
+- topic
+- draft
+
+并且所有输出必须经过 schema 校验，不直接信任裸文本。
+
+---
+
+## 系统架构
 
 ```mermaid
 flowchart LR
@@ -78,157 +151,140 @@ flowchart LR
     R --> PP[Publish Provider]
     R --> SP[Sync Provider]
 
-    S --> DB[(SQLite / DB)]
-    S --> AUD[Audit / Diagnostics / Sync Records]
+    S --> DB[(Database)]
+    S --> OBS[Audit / SyncRecord / Diagnostics / Health]
 ```
 
-### Design principles
+### 架构原则
 
-- **Do not hardcode external vendors into business logic**
-- **Everything external goes through provider / adapter / registry**
-- **Dry-run first, manual review first, live publish off by default**
-- **All high-risk actions must be observable and auditable**
-- **REST / MCP / Web Console must stay on the same service layer**
+- 外部能力必须走 provider / adapter / registry
+- REST / MCP / Web Console 必须共用同一业务层
+- 不允许在应用服务层直接散落第三方 SDK 细节
+- 高风险写操作必须有 safety gate
+- 默认人工审核，默认禁自动发布
 
----
+### 当前关键模块
 
-## Core capabilities
-
-### 1. Scrapling-based collector provider
-
-Provider key: `scrapling_xhs`
-
-Current support:
-
-- `search`
-- `detail`
-
-Implemented as an internal provider, not as a separate product bolted onto the side.
-
-### 2. Feishu sync through `lark-cli`
-
-Provider key: `feishu_cli`
-
-Current support:
-
-- Base-first sync mode
-- dry-run path
-- command builder
-- result parser
-- sync records + diagnostics
-
-### 3. Switchable model provider
-
-Provider keys:
-
-- `openai_compatible`
-- `custom_model_router`
-- `mock`
-
-Current support:
-
-- analyze
-- topic suggestion
-- draft generation
-- optional image-provider family with matching OpenAI-compatible env structure
+- `app/application/services.py`：主业务编排
+- `app/infrastructure/providers/registry.py`：provider 注册与选择
+- `app/infrastructure/providers/collector/scrapling_xhs.py`：Scrapling 采集适配器
+- `app/infrastructure/providers/feishu/cli.py`：lark-cli 同步适配器
+- `app/infrastructure/providers/llm/openai_compatible.py`：统一模型 provider
+- `app/interfaces/rest/routes.py`：REST API
+- `app/interfaces/mcp/routes.py`：MCP 工具入口
+- `app/interfaces/web/routes.py`：Web Console
 
 ---
 
-# How to develop this project with OpenSpec + oh-my-codex
+# OpenSpec + oh-my-codex 开发方式
 
-This is the most important section of this README.
+这是本项目最重要的开发约定。
 
-If you want to continue building this project correctly, the recommended approach is:
+如果只看代码，这个仓库是一个 provider-oriented 的 FastAPI 项目；  
+如果看开发方法，它其实是一个 **“OpenSpec 定义变化，oh-my-codex 执行变化”** 的规范化工程实验。
 
-## OpenSpec decides **what** to build
+## OpenSpec 负责：定义“做什么”
 
-Use OpenSpec to:
+OpenSpec 主要解决的是：
 
-- define a change before implementation
-- document architecture and constraints
-- break work into tasks
-- keep the repo aligned with intended scope
-- avoid random undocumented feature drift
+- 这次要改什么
+- 为什么要改
+- 改动边界是什么
+- 任务拆解是什么
+- 验收标准是什么
 
-In practice, OpenSpec is where you write and refine:
+在这个项目里，OpenSpec 适合管理的内容包括：
 
-- design
-- specs
-- tasks
-- acceptance expectations
+- 新 provider 接入
+- 工作流阶段调整
+- 数据模型变更
+- 诊断与审计增强
+- API / MCP / Web 共用层变更
 
-For this repo, OpenSpec should be used whenever you are doing any meaningful feature or architecture change, especially when touching:
+一句话：
 
-- providers
-- workflow stages
-- contracts
-- diagnostics / audit model
-- REST / MCP / Web shared business paths
+> OpenSpec 负责把“想法”变成“规格”。
 
-## oh-my-codex decides **how** to execute the work
+## oh-my-codex 负责：定义“怎么做”
 
-Use oh-my-codex to:
+oh-my-codex 主要解决的是：
 
-- load the right workflow skill for the current task
-- enforce planning before implementation
-- enforce debugging discipline before patching bugs
-- enforce testing/verification before calling work “done”
-- coordinate subagents, plans, and execution loops when needed
+- 什么时候先规划，什么时候先调试
+- 什么时候要先做 audit
+- 什么时候必须先写计划再改代码
+- 什么时候要用验证流程收尾
+- 什么时候该拆成多代理协作
 
-In this repo, oh-my-codex is especially useful for:
+在这个项目里，oh-my-codex 的价值主要体现在：
 
-- repository audits
-- implementing OpenSpec task lists
-- refactoring provider integrations safely
-- writing runbooks and acceptance docs
-- preparing GitHub-ready delivery branches
+- 用 skill 强制开发纪律
+- 用 plan 管理执行顺序
+- 用 verification 避免“没测就说完成”
+- 用 provider/架构边界思维约束实现方式
 
-## The right mental model
+一句话：
 
-Use them together like this:
+> oh-my-codex 负责把“规格”变成“交付”。
 
-| Layer | Responsibility |
+## 两者一起用时的正确心智模型
+
+| 层级 | 负责内容 |
 |---|---|
-| OpenSpec | define the change clearly |
-| oh-my-codex | execute the change with disciplined workflows |
-| app code | implement the architecture |
-| tests/docs | prove and explain the result |
+| OpenSpec | 明确需求、边界、设计、任务、验收 |
+| oh-my-codex | 按纪律执行实现、测试、文档、交付 |
+| 代码层 | 落地 provider、service、routes、UI、tests |
+| 文档层 | 把工程结论沉淀成 README / runbook / readiness |
+
+也就是说：
+
+- **不要只开 Codex 就直接改代码**
+- **也不要只写 OpenSpec 不继续落地实现**
+- 正确方式是：**先规格化，再代理化执行**
 
 ---
 
-## Recommended day-to-day workflow
+## 推荐开发流程
 
-### Step 1: start from a spec, not a vague idea
+下面是这个项目最推荐的实际开发步骤。
 
-When you want to add or change something substantial:
+### 第一步：先写变更，不要直接写代码
 
-1. create or refine the OpenSpec change
-2. make sure design / specs / tasks are explicit
-3. clarify constraints before touching code
+当你准备新增一个功能，比如：
 
-Typical examples in this repo:
+- 新 collector provider
+- 新 sync provider
+- 新模型服务商
+- 新发布通道
+- 新审计能力
 
-- adding a new provider
-- changing workflow stages
-- extending sync targets
-- adding a new publish channel
-- changing review gates
+应先在 OpenSpec 中补齐：
 
-### Step 2: use oh-my-codex skills intentionally
+1. change
+2. design
+3. specs
+4. tasks
+5. acceptance criteria
 
-Common skill patterns for this repo:
+这样后续无论是你自己写，还是让代理写，都不会失控。
 
-- **brainstorming** → before creative feature work
-- **writing-plans** / **openspec-propose** / **openspec-apply-change** → when turning requirements into implementation
-- **systematic-debugging** → before bug fixes
-- **verification-before-completion** → before claiming success
-- **github:yeet** → when publishing the branch to GitHub
+### 第二步：用 oh-my-codex 选择正确技能
 
-The key idea: do not jump straight into coding. Let the workflow discipline shape the implementation.
+在这个仓库里，常见技能组合是：
 
-### Step 3: implement through the existing architecture
+- `brainstorming`：做功能设计前先澄清方案
+- `openspec-propose` / `openspec-apply-change`：把规格转成实施任务
+- `writing-plans`：对复杂改造先写执行计划
+- `systematic-debugging`：遇到 bug 先诊断，不要直接蒙改
+- `verification-before-completion`：收尾前强制验证
+- `github:yeet`：准备发布到 GitHub 时使用
 
-For this project, implementation should usually follow this order:
+核心原则是：
+
+> 不要把代理当“自动打字机”，要把代理当“按流程执行的工程协作者”。
+
+### 第三步：按架构顺序落地
+
+本项目推荐按以下顺序实施：
 
 1. `contracts`
 2. `config`
@@ -239,85 +295,62 @@ For this project, implementation should usually follow this order:
 7. `tests`
 8. `docs`
 
-That sequence keeps the system coherent and avoids leaking external vendor logic into business services.
+这样做的好处是：
 
-### Step 4: verify before calling it done
+- 不会把外部实现细节泄漏到业务层
+- 不会先写界面再回头补业务边界
+- 不会出现“代码能跑但文档和环境变量完全失真”的问题
 
-Before finishing a change:
+### 第四步：验证后再宣布完成
 
-- run tests
-- check diagnostics surfaces
-- check docs and `.env.example`
-- confirm safety defaults still hold
-- confirm no external integration bypassed the provider registry
+每次变更都应该至少检查：
 
-### Step 5: publish intentionally
+- 测试是否通过
+- README / `.env.example` 是否同步
+- provider 是否仍通过 registry 选择
+- safety gate 是否被保留
+- diagnostics / audit 是否仍然可追踪
 
-When pushing work:
+### 第五步：最后再发布到 GitHub
 
-- review scope
-- stage only intended changes
-- commit clearly
-- push to GitHub
-- prefer draft PRs unless explicitly ready for review
+如果改动准备提交：
 
----
-
-## Example: adding a new provider correctly
-
-If you want to add another provider later, the recommended OpenSpec + oh-my-codex path is:
-
-1. **OpenSpec**: define the new provider change
-2. document:
-   - provider purpose
-   - business boundaries
-   - env contract
-   - safety behavior
-   - diagnostics expectations
-3. **oh-my-codex**: use planning/execution skills to implement
-4. update:
-   - `app/domain/contracts.py`
-   - `app/core/config.py`
-   - `app/infrastructure/providers/...`
-   - `app/infrastructure/providers/registry.py`
-   - `app/application/services.py`
-   - REST / MCP / Web surfaces
-   - tests
-   - docs
-
-This is exactly how the current Scrapling, lark-cli, and configurable model-provider integrations were approached.
+- 先确认范围
+- 再 commit
+- 再 push
+- 默认建议 draft PR / 谨慎发布
 
 ---
 
-## Getting started
+## 快速开始
 
-### 1. Clone
+### 1. 克隆仓库
 
 ```bash
 git clone https://github.com/FRANKOUST/Rednote-agent-pro.git
 cd Rednote-agent-pro
 ```
 
-### 2. Create env file
+### 2. 创建环境变量文件
 
 ```bash
 cp .env.example .env
 ```
 
-### 3. Install
+### 3. 安装依赖
 
 ```bash
 pip install -e .[dev]
 ```
 
-If you want live Scrapling fetchers later:
+如果你后续要验证真实 Scrapling：
 
 ```bash
 pip install -e .[collectors]
 scrapling install
 ```
 
-### 4. Verify
+### 4. 运行测试
 
 ```bash
 pytest -q
@@ -325,9 +358,9 @@ pytest -q
 
 ---
 
-## Environment configuration
+## 环境变量
 
-### Collector
+### 采集相关
 
 ```env
 XHS_DEFAULT_COLLECTOR_PROVIDER=scrapling_xhs
@@ -337,7 +370,7 @@ XHS_SCRAPLING_COOKIES_PATH=./data/scrapling/cookies.json
 XHS_SCRAPLING_STORAGE_STATE_PATH=./data/scrapling/storage_state.json
 ```
 
-### Sync
+### 同步相关
 
 ```env
 XHS_DEFAULT_SYNC_PROVIDER=feishu_cli
@@ -349,7 +382,7 @@ XHS_FEISHU_BASE_TOKEN=
 XHS_FEISHU_TABLE_ID=
 ```
 
-### Model
+### 模型相关
 
 ```env
 XHS_DEFAULT_MODEL_PROVIDER=custom_model_router
@@ -363,31 +396,25 @@ XHS_MODEL_TEMPERATURE=0.2
 
 ---
 
-## Run the system
+## 运行入口
 
-### Start app
+### 启动服务
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-### Open the Web Console
+### 访问地址
 
-- `http://127.0.0.1:8000/`
-
-### Useful local actions
-
-- run dry pipeline
-- trigger Scrapling search
-- trigger Scrapling detail
-- trigger Feishu sync dry-run
-- inspect provider health / diagnostics
+- Web Console：`http://127.0.0.1:8000/`
+- OpenAPI：`http://127.0.0.1:8000/docs`
+- MCP Endpoint：`http://127.0.0.1:8000/mcp`
 
 ---
 
-## REST / MCP / Web Console
+## 接口与操作台
 
-### REST highlights
+### REST API
 
 - `POST /api/pipeline-runs`
 - `POST /api/collector-runs/search`
@@ -396,7 +423,7 @@ uvicorn app.main:app --reload
 - `GET /api/providers/status`
 - `GET /api/pipeline-runs/{id}/diagnostics`
 
-### MCP tools
+### MCP Tools
 
 - `start_pipeline`
 - `start_collector_search`
@@ -404,7 +431,7 @@ uvicorn app.main:app --reload
 - `start_sync_run`
 - `get_provider_status`
 
-### Web Console pages
+### Web Console
 
 - `/`
 - `/console/entities`
@@ -414,50 +441,56 @@ uvicorn app.main:app --reload
 
 ---
 
-## Repository structure
+## 仓库结构
 
 ```text
 app/
-  application/      shared orchestration, dispatcher, worker control
-  core/             config + middleware
-  db/               persistence models + session
-  domain/           contracts + payload schemas
-  infrastructure/   providers, registry, adapters
-  interfaces/       REST, MCP, Web
-config/             mapping config
-fixtures/           dry-run / parser fixtures
-templates/          Web Console templates
-tests/              unit + integration tests
-docs/               portfolio + planning artifacts
+  application/      主业务编排、dispatcher、worker 控制
+  core/             配置与中间件
+  db/               持久化模型与 session
+  domain/           contracts、payload、schema
+  infrastructure/   providers、registry、adapter
+  interfaces/       REST、MCP、Web
+config/             映射配置
+templates/          Web Console 模板
+fixtures/           干跑与解析 fixture
+tests/              单测与集成测试
+docs/               规划、展示与运维文档
 ```
 
 ---
 
-## Safety defaults
+## 安全策略
 
-- collector defaults to fixture/dry-run mode
-- sync defaults to dry-run
-- live publish remains gated
-- manual review remains required before publish
-- schema validation is mandatory for model output
-- audit logs and diagnostics remain first-class outputs
+默认策略如下：
 
----
+- 采集优先走 fixture / dry-run
+- 飞书同步优先 dry-run
+- 发布前默认人工审核
+- 默认禁自动 live publish
+- 模型输出必须过 schema 校验
+- 所有关键阶段都要留下 diagnostics / audit / sync record
 
-## Quality status
+这个项目的目标不是“尽快自动化一切”，而是：
 
-Current verified state:
-
-- provider-oriented architecture preserved
-- Scrapling collector integrated
-- lark-cli sync integrated
-- configurable model provider integrated
-- REST / MCP / Web share one business layer
-- **`pytest -q` → 54 passed**
+> 在可控、可审计、可验证的前提下推进自动化。
 
 ---
 
-## Documentation map
+## 当前质量状态
+
+当前已确认：
+
+- Scrapling collector 已接入
+- lark-cli sync 已接入
+- 通用模型 provider 已接入
+- REST / MCP / Web 共用同一业务层
+- README / runbook / integration docs 已补齐
+- 测试通过：**`pytest -q` → 54 passed**
+
+---
+
+## 文档索引
 
 - [`SCRAPLING_INTEGRATION.md`](./SCRAPLING_INTEGRATION.md)
 - [`FEISHU_CLI_INTEGRATION.md`](./FEISHU_CLI_INTEGRATION.md)
@@ -471,12 +504,25 @@ Current verified state:
 
 ---
 
-## Current real-world blockers
+## 当前真实阻塞项
 
-The codebase is ready for controlled small-scale validation, but real-world verification still needs:
+当前代码、测试、文档、干跑链路已经完成，剩下的是真实外部验证所需输入：
 
-1. authenticated Scrapling/XHS session material
-2. authenticated `lark-cli` setup for Feishu
-3. one real OpenAI-compatible provider key/base_url/model
+1. 小红书真实登录态（Scrapling cookies / storage state）
+2. 已授权的 `lark-cli` 环境
+3. 至少一组可用的模型服务商 `api_key + base_url + model`
 
-Once those are provided, the remaining work is live verification, validation reporting, and final acceptance closeout.
+拿到这些之后，下一步就是：
+
+- 做小规模真实采集验证
+- 做真实模型链路验证
+- 做真实飞书同步验证
+- 补齐最终 validation report
+
+---
+
+## 一句话总结
+
+如果你想把一个 AI 项目做成真正像“工程项目”的样子，而不是停留在脚本和 Demo 阶段，这个仓库展示的是一种很实用的方法：
+
+> **用 OpenSpec 管“该做什么”，用 oh-my-codex 管“该怎么做”，再用 provider 架构把外部世界安全地接进来。**

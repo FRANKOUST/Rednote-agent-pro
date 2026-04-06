@@ -1,17 +1,17 @@
 # Backlog
 
-## Immediate
+## P0 / Blocker-bound
 
-- Validate live provider shells against real OpenAI, Feishu, Xiaohongshu publish, and Playwright-authenticated environments.
-- Record a full small-scale live validation cycle in `SMALL_SCALE_VALIDATION_REPORT.md`.
+- Validate live Scrapling search/detail against a real authenticated XHS session.
+- Validate `lark-cli` Base sync against a real Feishu workspace.
+- Validate at least one real OpenAI-compatible model endpoint for analyze/topic/draft.
+- Record the resulting controlled run in `SMALL_SCALE_VALIDATION_REPORT.md`.
 
-## Next
+## P1
 
-- Add a durable distributed queue backend if small-scale operations exceed subprocess/file worker capacity.
-- Refine real provider behavior based on live validation findings.
+- Add optional Sheets sync mode coverage once Base validation is complete.
+- Add richer provider-level metrics export for operator dashboards.
 
-## Later
+## P2
 
-- Add richer observability dashboards and structured metrics export.
-- Add operator auth/session controls for multi-user internal deployment.
-- Improve MCP compatibility for direct use in external AI desktop clients.
+- Evaluate a more durable worker backend if usage grows past small controlled runs.

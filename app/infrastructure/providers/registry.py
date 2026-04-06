@@ -5,15 +5,17 @@ from dataclasses import dataclass
 from app.core.config import get_settings
 from app.infrastructure.providers.collector.mock import MockCollectorProvider
 from app.infrastructure.providers.collector.safe_playwright import SafePlaywrightCollectorProvider
-from app.infrastructure.providers.feishu.live import FeishuLiveSyncProvider
+from app.infrastructure.providers.collector.scrapling_xhs import ScraplingXhsCollectorProvider
+from app.infrastructure.providers.feishu.cli import FeishuCLISyncProvider
 from app.infrastructure.providers.feishu.mock import MockSyncProvider
 from app.infrastructure.providers.feishu.safe_stub import FeishuSafeStubProvider
-from app.infrastructure.providers.image.openai_live import OpenAILiveImageProvider
 from app.infrastructure.providers.image.mock import MockImageProvider
-from app.infrastructure.providers.image.openai_safe_stub import OpenAISafeImageStubProvider
-from app.infrastructure.providers.llm.openai_live import OpenAILiveLLMProvider
+from app.infrastructure.providers.image.openai_compatible import OpenAICompatibleImageProvider
+from app.infrastructure.providers.image.openai_safe_stub import OpenAICompatibleSafeImageStubProvider
+from app.infrastructure.providers.llm.custom_model_router import CustomModelRouterProvider
 from app.infrastructure.providers.llm.mock import MockLanguageModelProvider
-from app.infrastructure.providers.llm.openai_safe_stub import OpenAISafeLLMStubProvider
+from app.infrastructure.providers.llm.openai_compatible import OpenAICompatibleLLMProvider
+from app.infrastructure.providers.llm.openai_safe_stub import OpenAICompatibleSafeLLMStubProvider
 from app.infrastructure.providers.publisher.api_live import XiaohongshuAPILiveProvider
 from app.infrastructure.providers.publisher.api_safe_stub import XiaohongshuAPISafeStubProvider
 from app.infrastructure.providers.publisher.browser_live import XiaohongshuBrowserLiveProvider
@@ -30,20 +32,34 @@ class ProviderRegistry:
     sync: object
 
 
-def _select_language_model_provider(settings):
-    if settings.default_model_provider == "openai":
-        if settings.enable_real_model_provider and settings.openai_api_key:
-            return OpenAILiveLLMProvider
-        return OpenAISafeLLMStubProvider
-    return MockLanguageModelProvider
+_COLLECTORS = {
+    "mock": MockCollectorProvider,
+    "playwright": SafePlaywrightCollectorProvider,
+    "scrapling_xhs": ScraplingXhsCollectorProvider,
+    "mediacrawler_xhs": ScraplingXhsCollectorProvider,
+}
 
+_LANGUAGE_MODELS = {
+    "mock": MockLanguageModelProvider,
+    "openai": OpenAICompatibleLLMProvider,
+    "openai_compatible": OpenAICompatibleLLMProvider,
+    "custom_model_router": CustomModelRouterProvider,
+    "openai_safe_stub": OpenAICompatibleSafeLLMStubProvider,
+}
 
-def _select_image_provider(settings):
-    if settings.default_image_provider == "openai":
-        if settings.enable_real_image_provider and settings.openai_api_key:
-            return OpenAILiveImageProvider
-        return OpenAISafeImageStubProvider
-    return MockImageProvider
+_IMAGE_MODELS = {
+    "mock": MockImageProvider,
+    "openai": OpenAICompatibleImageProvider,
+    "openai_compatible": OpenAICompatibleImageProvider,
+    "openai_safe_stub": OpenAICompatibleSafeImageStubProvider,
+}
+
+_SYNC_PROVIDERS = {
+    "mock": MockSyncProvider,
+    "feishu": FeishuCLISyncProvider,
+    "feishu_cli": FeishuCLISyncProvider,
+    "feishu_safe_stub": FeishuSafeStubProvider,
+}
 
 
 def _select_publish_provider(settings):
@@ -58,23 +74,17 @@ def _select_publish_provider(settings):
     return MockPublisherProvider
 
 
-def _select_sync_provider(settings):
-    if settings.default_sync_provider == "feishu":
-        if settings.enable_real_sync_provider and settings.feishu_app_id and settings.feishu_app_secret:
-            return FeishuLiveSyncProvider
-        return FeishuSafeStubProvider
-    return MockSyncProvider
-
-
 def build_provider_registry() -> ProviderRegistry:
     settings = get_settings()
-
-    collectors = {"mock": MockCollectorProvider, "playwright": SafePlaywrightCollectorProvider}
+    collector_cls = _COLLECTORS.get(settings.default_collector_provider, ScraplingXhsCollectorProvider)
+    llm_cls = _LANGUAGE_MODELS.get(settings.default_model_provider, CustomModelRouterProvider)
+    image_cls = _IMAGE_MODELS.get(settings.default_image_provider, MockImageProvider)
+    sync_cls = _SYNC_PROVIDERS.get(settings.default_sync_provider, FeishuCLISyncProvider)
 
     return ProviderRegistry(
-        collector=collectors[settings.default_collector_provider](),
-        language_model=_select_language_model_provider(settings)(),
-        image=_select_image_provider(settings)(),
+        collector=collector_cls(),
+        language_model=llm_cls(),
+        image=image_cls(),
         publisher=_select_publish_provider(settings)(),
-        sync=_select_sync_provider(settings)(),
+        sync=sync_cls(),
     )

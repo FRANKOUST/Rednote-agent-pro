@@ -1,16 +1,14 @@
 # Provider Integration Matrix
 
-| Capability | Mock | Safe Stub | Live Shell | Real Validation Complete |
-|---|---|---|---|---|
-| Collector | Yes | Safe Playwright fallback | Safe Playwright live shell | No |
-| Analysis LLM | Yes | OpenAI safe stub | OpenAI live HTTP shell | No |
-| Draft LLM | Yes | OpenAI safe stub | OpenAI live HTTP shell | No |
-| Image Generation | Yes | OpenAI safe stub | OpenAI image live shell | No |
-| Publish API | Yes | API safe stub | API live HTTP shell | No |
-| Publish Browser | Yes | Browser safe stub | Browser live Playwright shell | No |
-| Sync / Feishu | Yes | Feishu safe stub | Feishu live HTTP shell | No |
+| Capability | Registry Key(s) | Default Mode | Live Requirement | Safety Default | Shared Surface |
+|---|---|---|---|---|---|
+| Collector | `scrapling_xhs`, `mock`, `playwright` | `scrapling_xhs` in fixture mode | Scrapling fetchers installed + XHS auth state | Fixture / dry-run first | REST + MCP + Web + service |
+| Model | `openai_compatible`, `custom_model_router`, `mock` | `custom_model_router` | OpenAI-compatible `base_url` + `api_key` + `model` | Safe fallback to stub/mock | REST + MCP + Web + service |
+| Image | `mock`, `openai_compatible` | `mock` | OpenAI-compatible image endpoint + key | Mock first | REST + Web + service |
+| Publisher | `mock`, `api`, `browser` | `mock` | Publish credential or browser state | Manual review + live gate | REST + Web + service |
+| Sync | `feishu_cli`, `mock` | `feishu_cli` dry-run | Authenticated `lark-cli` plus target Base/Sheet | Dry-run first | REST + MCP + Web + service |
 
 ## Notes
 
-- "Live Shell" means the code path exists and attempts a real integration before falling back safely.
-- "Real Validation Complete" requires real credentials, approved accounts, and a recorded validation run.
+- No provider implementation is called directly from route handlers; routes go through `PipelineService`.
+- Real external actions are opt-in through env flags and still retain operator-visible diagnostics.

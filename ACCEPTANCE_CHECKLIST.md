@@ -1,68 +1,44 @@
 # Acceptance Checklist
 
-## Platform
+## Architecture
 
-- [x] App starts locally
-- [x] SQLite local mode works
-- [x] REST, MCP, and Web Console share the same business layer
+- [x] REST, MCP, and Web Console share one business layer
+- [x] Provider registry owns collector / model / sync selection
+- [x] Safety gates remain in front of publish and live external actions
 
-## Workflow
+## Collector
 
-- [x] Main pipeline runs end to end in mock mode
-- [x] Draft review is required before publish
-- [x] Publish jobs are persisted
-- [x] Sync records are persisted
-- [x] Audit logs are persisted
+- [x] `scrapling_xhs` provider is wired through the registry
+- [x] Search collection path works in fixture/dry-run mode
+- [x] Detail collection path works in fixture/dry-run mode
+- [x] Collector runs persist diagnostics and summaries
+- [ ] Real authenticated Scrapling validation recorded
 
-## Safety
+## Sync
 
-- [x] Auth can protect REST and MCP
-- [x] Web Console login exists
-- [x] Basic role separation exists for viewer/operator/reviewer/admin
-- [x] Live publish gate defaults to safe behavior
-- [x] Provider fallback paths exist
+- [x] `feishu_cli` provider is wired through the registry
+- [x] Base-first payload + command builder exists
+- [x] Dry-run sync path records SyncRun and SyncRecord
+- [x] CLI stdout/stderr and retry metadata are captured into diagnostics
+- [ ] Real authenticated lark-cli validation recorded
 
-## Observability
+## Model
 
-- [x] Request IDs are attached
-- [x] Run diagnostics are queryable
-- [x] Provider diagnostics are queryable
-- [x] Provider health is queryable
-
-## Provider Paths
-
-- [x] Mock providers exist
-- [x] Safe stubs exist
-- [x] Live shells exist
-- [ ] Real credentials validated in production-like conditions
-
-## Worker Execution
-
-- [x] Inline mode
-- [x] Background mode
-- [x] Worker stub mode
-- [x] External worker adapter mode
-- [x] Inspect / cancel / requeue controls
-- [x] Dead-letter-like handling
-- [ ] Durable distributed queue backend
+- [x] Unified env-driven model provider config exists
+- [x] `openai_compatible` provider exists
+- [x] `custom_model_router` provider exists
+- [x] Analyze / topic / draft stages use the shared provider path
+- [x] Schema validation guards model output
+- [ ] Real model-provider validation recorded
 
 ## Operator Experience
 
-- [x] Dashboard
-- [x] Entity list view
-- [x] Source post detail page
-- [x] Analysis report detail page
-- [x] Topic suggestion detail page
-- [x] Image asset detail page
-- [x] Run detail and diagnostics page
-- [x] Publish history
-- [x] Sync history
-- [x] Diagnostics visibility
+- [x] Dashboard shows provider health and recent runs
+- [x] Web Console exposes collector runs, sync runs, and provider status
+- [x] REST exposes diagnostics / health / run details
+- [x] MCP exposes collector search/detail and provider status tools
 
 ## Validation
 
-- [x] Test suite passes
-- [ ] Real collector validation run recorded
-- [ ] Real model validation run recorded
-- [ ] Real sync validation run recorded
-- [ ] Real publish or safe dry-run publish validation recorded
+- [x] Test suite passes (`54 passed`)
+- [ ] Full small-scale real validation report completed with external credentials

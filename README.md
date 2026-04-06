@@ -1,621 +1,482 @@
-# Xiaohongshu Content Platform
+# Rednote Agent Pro
 
-一个面向单团队内部使用的“小红书内容挖掘与自动生成系统”工程样板，采用 `FastAPI + SQLAlchemy + Provider 插件层 + 可演进异步任务编排`，覆盖从内容采集、爆款分析、选题生成、文案生成、配图生成，到人工审核、发布记录、同步记录和操作台管理的完整闭环。
+> A provider-oriented Xiaohongshu content operations system built for **spec-driven**, **agent-assisted**, and **small-scale controllable** development.
 
-当前仓库不是“只会调模型的 demo”，而是一个具备以下特征的平台雏形：
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](#getting-started)
+[![FastAPI](https://img.shields.io/badge/FastAPI-REST%20%2B%20MCP-009688)](#architecture)
+[![Tests](https://img.shields.io/badge/tests-54%20passed-success)](#quality-status)
+[![Safety](https://img.shields.io/badge/publish-manual%20review%20first-orange)](#safety-defaults)
 
-- 有清晰的领域模型与状态机
-- 有 OpenSpec 变更管理结构
-- 有 oh-my-codex 实施计划与工程文档
-- 有可运行的后端主流程
-- 有 REST API、MCP-style tool server、Web Console 三种入口
-- 有 mock provider、safe stub、live shell 三层 provider 演进路径
-- 有基础 auth、observability、diagnostics、audit、sync 记录
-- 有外部 worker adapter 的演进位点
+---
 
-## 1. 项目目标
+## Table of Contents
 
-这个项目的目标不是只做一条脚本式自动化流水线，而是构建一个可持续演进的平台：
+- [What this project is](#what-this-project-is)
+- [Why this repo is different](#why-this-repo-is-different)
+- [Architecture](#architecture)
+- [Core capabilities](#core-capabilities)
+- [How to develop this project with OpenSpec + oh-my-codex](#how-to-develop-this-project-with-openspec--oh-my-codex)
+- [Recommended day-to-day workflow](#recommended-day-to-day-workflow)
+- [Getting started](#getting-started)
+- [Environment configuration](#environment-configuration)
+- [Run the system](#run-the-system)
+- [REST / MCP / Web Console](#rest--mcp--web-console)
+- [Repository structure](#repository-structure)
+- [Safety defaults](#safety-defaults)
+- [Quality status](#quality-status)
+- [Documentation map](#documentation-map)
+- [Current real-world blockers](#current-real-world-blockers)
 
-1. 从小红书竞品内容中采集结构化内容样本
-2. 分析高频关键词、标签、标题模式和用户洞察
-3. 基于分析结果生成选题
-4. 基于选题生成文案草稿和配图
-5. 进入人工审核流
-6. 审核通过后创建发布任务
-7. 将关键阶段结果同步到协作系统
-8. 支持人类操作员和 AI agent 通过不同入口调用同一业务层
+---
 
-## 2. 当前实现状态
+## What this project is
 
-当前版本已经是一个**可运行、可测试、可演示、可写进作品集**的阶段性交付，不再是空仓库或纸面设计。
+**Rednote Agent Pro** is a modular Xiaohongshu workflow system for:
 
-### 已完成
+- collecting source posts from Xiaohongshu
+- analyzing high-performing content patterns
+- generating topics and drafts with configurable model providers
+- reviewing before publish
+- recording publish jobs, sync records, diagnostics, and audits
+- syncing outputs to Feishu through CLI-based adapters
 
-- 模块化单体后端骨架
-- 核心领域实体与状态机
-- SQLite 本地持久化
-- 主链路跑通：
-  - `crawl -> analyze -> topic -> draft -> image -> review -> publish -> sync`
-- REST API
-- 实体级 REST API
-- MCP-style tool server
-- MCP 实体查询与详情工具
-- Web Console
-- Web Console 登录与 session 保护
-- 审核流
-- 发布记录
-- 同步记录
-- 审计日志
-- request-id、run diagnostics、provider diagnostics、provider health
-- dispatcher：
-  - `inline`
-  - `background`
-  - `worker_stub`
-  - `external_worker`
-- external worker adapter：
-  - `filesystem`
-  - `subprocess`
-- provider 三层演进模型：
-  - `mock`
-  - `safe stub`
-  - `live shell`
+This repository is intentionally designed as a **single business hub** with multiple operator surfaces:
 
-### 未完成但已预留位点
+- **REST API**
+- **MCP tools**
+- **Web Console**
 
-- 真实小红书 Playwright 采集选择器与登录态验证
-- 真实 OpenAI 文本/图像调用结果的结构化消费
-- 真实 Feishu Bitable 字段映射与幂等更新
-- 真实 API 发布与浏览器自动发布的生产验证
-- durable queue / distributed worker backend
+All three surfaces share the same application service layer instead of duplicating business logic.
 
-## 3. 核心能力概览
+---
 
-### 3.1 数据采集
+## Why this repo is different
 
-当前支持两类采集 provider：
+This repo is not just “an AI app.” It is structured for **long-running, spec-first project delivery**.
 
-- `mock-collector`
-- `safe-playwright-collector`
+It combines two workflows:
 
-`safe-playwright-collector` 已具备真实浏览器导航壳层，但在缺少浏览器依赖、storage state、运行权限或发生异常时，会自动回退到 mock/fallback 路径，不会直接把整个 pipeline 打死。
+1. **OpenSpec** → defines what should be built
+2. **oh-my-codex** → helps execute the work with disciplined agent workflows, skills, plans, and verification
 
-### 3.2 数据分析与选题
+That combination is the main development philosophy of this project.
 
-当前通过 LLM provider 层完成：
+---
 
-- source posts -> analysis report
-- analysis report -> topic suggestions
+## Architecture
 
-支持：
+```mermaid
+flowchart LR
+    A[REST API] --> S[PipelineService]
+    B[MCP Tools] --> S
+    C[Web Console] --> S
 
-- mock LLM
-- OpenAI safe stub
-- OpenAI live shell
+    S --> R[Provider Registry]
+    R --> CP[Collector Provider]
+    R --> MP[Model Provider]
+    R --> IP[Image Provider]
+    R --> PP[Publish Provider]
+    R --> SP[Sync Provider]
 
-### 3.3 草稿与配图生成
-
-当前可生成：
-
-- 标题
-- 正文
-- 标签
-- CTA
-- 图片提示词
-- 内容类型
-
-图像生成支持：
-
-- mock image provider
-- OpenAI safe stub
-- OpenAI live shell
-
-### 3.4 审核与发布
-
-核心规则：
-
-- 默认必须人工审核
-- draft 必须 `approved` 才能进入发布
-- live publish 默认关闭
-- 即使配置了 live publish provider，若未显式开启 `allow_live_publish`，也会强制回退到 safe stub
-
-### 3.5 同步与审计
-
-当前已持久化：
-
-- source post batch sync
-- content draft batch sync
-- publish job sync
-- audit logs
-
-## 4. 架构设计
-
-总体架构：
-
-- 模块化单体
-- Provider 插件层
-- 共享应用服务层
-- 可演进任务调度抽象
-
-### 分层
-
-#### Interface Layer
-
-- REST
-- MCP
-- Web Console
-
-#### Application Layer
-
-- pipeline orchestration
-- review flow
-- publish orchestration
-- sync orchestration
-
-#### Domain Layer
-
-- state machines
-- DTOs / payloads
-- provider contracts
-
-#### Infrastructure Layer
-
-- database
-- mock providers
-- safe stubs
-- live shells
-- external worker adapters
-
-## 5. 核心领域模型
-
-系统围绕以下实体建模：
-
-- `SourcePost`
-- `AnalysisReport`
-- `TopicSuggestion`
-- `ContentDraft`
-- `ImageAsset`
-- `PublishJob`
-- `SyncRecord`
-- `AuditLog`
-- `WorkflowRun`
-- `WorkflowStageEvent`
-
-### Draft 状态机
-
-`created -> generated -> review_pending -> approved / rejected -> publish_ready -> published`
-
-### PublishJob 状态机
-
-`queued -> preparing -> publishing -> published / failed / cancelled`
-
-## 6. 目录结构
-
-```text
-app/
-  application/
-    dispatcher.py
-    external_worker.py
-    factory.py
-    services.py
-    worker_runner.py
-  core/
-    config.py
-    middleware.py
-  db/
-    base.py
-    models.py
-    session.py
-  domain/
-    contracts.py
-    models.py
-  infrastructure/
-    providers/
-      collector/
-      llm/
-      image/
-      publisher/
-      feishu/
-      registry.py
-  interfaces/
-    rest/
-      routes.py
-    mcp/
-      routes.py
-    web/
-      routes.py
-  main.py
-templates/
-  index.html
-  login.html
-  entities.html
-  entity_detail.html
-tests/
-  unit/
-  integration/
-docs/
-  portfolio/
-  superpowers/
-openspec/
+    S --> DB[(SQLite / DB)]
+    S --> AUD[Audit / Diagnostics / Sync Records]
 ```
 
-## 7. 配置说明
+### Design principles
 
-主要配置来自 `.env`。
+- **Do not hardcode external vendors into business logic**
+- **Everything external goes through provider / adapter / registry**
+- **Dry-run first, manual review first, live publish off by default**
+- **All high-risk actions must be observable and auditable**
+- **REST / MCP / Web Console must stay on the same service layer**
 
-参考文件：
+---
 
-- [.env.example](G:\projects\tests\test\.env.example)
+## Core capabilities
 
-重要配置项：
+### 1. Scrapling-based collector provider
 
-- `XHS_DATABASE_URL`
-- `XHS_MEDIA_DIR`
-- `XHS_TASK_MODE`
-- `XHS_DEFAULT_COLLECTOR_PROVIDER`
-- `XHS_DEFAULT_MODEL_PROVIDER`
-- `XHS_DEFAULT_IMAGE_PROVIDER`
-- `XHS_DEFAULT_PUBLISH_PROVIDER`
-- `XHS_DEFAULT_SYNC_PROVIDER`
-- `XHS_ENABLE_REAL_COLLECTOR`
-- `XHS_ENABLE_REAL_MODEL_PROVIDER`
-- `XHS_ENABLE_REAL_IMAGE_PROVIDER`
-- `XHS_ENABLE_REAL_PUBLISH_PROVIDER`
-- `XHS_ENABLE_REAL_SYNC_PROVIDER`
-- `XHS_ALLOW_LIVE_PUBLISH`
-- `XHS_AUTH_ENABLED`
-- `XHS_OPERATOR_API_KEY`
-- `XHS_WORKER_ADAPTER_KIND`
-- `XHS_WORKER_QUEUE_DIR`
-- `XHS_OPENAI_API_KEY`
-- `XHS_FEISHU_APP_ID`
-- `XHS_FEISHU_APP_SECRET`
-- `XHS_XHS_PUBLISH_API_BASE`
-- `XHS_XHS_PUBLISH_API_TOKEN`
+Provider key: `scrapling_xhs`
 
-## 8. Provider 模型
+Current support:
 
-每类外部能力都遵循同一演进路径：
+- `search`
+- `detail`
 
-1. `mock`
-2. `safe stub`
-3. `live shell`
+Implemented as an internal provider, not as a separate product bolted onto the side.
 
-### 例子
+### 2. Feishu sync through `lark-cli`
 
-#### LLM
+Provider key: `feishu_cli`
 
-- `mock-llm`
-- `openai-safe-llm-stub`
-- `openai-live-llm`
+Current support:
 
-#### Image
+- Base-first sync mode
+- dry-run path
+- command builder
+- result parser
+- sync records + diagnostics
 
-- `mock-image`
-- `openai-safe-image-stub`
-- `openai-live-image`
+### 3. Switchable model provider
 
-#### Publish
+Provider keys:
 
-- `mock-publisher`
-- `xhs-api-safe-stub`
-- `xhs-api-live-publisher`
-- `xhs-browser-safe-stub`
-- `xhs-browser-live-publisher`
+- `openai_compatible`
+- `custom_model_router`
+- `mock`
 
-#### Sync
+Current support:
 
-- `mock-feishu`
-- `feishu-safe-stub`
-- `feishu-live-sync`
+- analyze
+- topic suggestion
+- draft generation
+- optional image-provider family with matching OpenAI-compatible env structure
 
-#### Collector
+---
 
-- `mock-collector`
-- `safe-playwright-collector`
+# How to develop this project with OpenSpec + oh-my-codex
 
-## 9. 运行模式
+This is the most important section of this README.
 
-### 9.1 本地演示模式
+If you want to continue building this project correctly, the recommended approach is:
 
-推荐默认使用：
+## OpenSpec decides **what** to build
 
-- SQLite
-- local media directory
-- mock / safe provider
-- `inline` task mode
+Use OpenSpec to:
 
-### 9.2 背景任务模式
+- define a change before implementation
+- document architecture and constraints
+- break work into tasks
+- keep the repo aligned with intended scope
+- avoid random undocumented feature drift
 
-当前支持：
+In practice, OpenSpec is where you write and refine:
 
-- `inline`
-- `background`
-- `worker_stub`
-- `external_worker`
+- design
+- specs
+- tasks
+- acceptance expectations
 
-### 9.3 external worker adapter
+For this repo, OpenSpec should be used whenever you are doing any meaningful feature or architecture change, especially when touching:
 
-当前可用适配器：
+- providers
+- workflow stages
+- contracts
+- diagnostics / audit model
+- REST / MCP / Web shared business paths
 
-- `filesystem`
-- `subprocess`
+## oh-my-codex decides **how** to execute the work
 
-`filesystem` 会写入任务 manifest。  
-`subprocess` 会在本地启动独立 Python 进程执行 manifest 对应任务。
+Use oh-my-codex to:
 
-这仍然不是最终 durable queue，但已经是从 demo 走向真实 worker 的有效过渡层。
+- load the right workflow skill for the current task
+- enforce planning before implementation
+- enforce debugging discipline before patching bugs
+- enforce testing/verification before calling work “done”
+- coordinate subagents, plans, and execution loops when needed
 
-## 10. 安全边界
+In this repo, oh-my-codex is especially useful for:
 
-### 10.1 Operator Auth
+- repository audits
+- implementing OpenSpec task lists
+- refactoring provider integrations safely
+- writing runbooks and acceptance docs
+- preparing GitHub-ready delivery branches
 
-当 `XHS_AUTH_ENABLED=true` 时：
+## The right mental model
 
-- REST / MCP 需要 `X-Operator-Key`
-- Web Console 需要登录并获得 session cookie
+Use them together like this:
 
-### 10.2 Live Publish Gate
+| Layer | Responsibility |
+|---|---|
+| OpenSpec | define the change clearly |
+| oh-my-codex | execute the change with disciplined workflows |
+| app code | implement the architecture |
+| tests/docs | prove and explain the result |
 
-即使你启用了 live publish provider：
+---
 
-- 若 `XHS_ALLOW_LIVE_PUBLISH=false`
-- 系统仍然会强制回退到 safe stub
+## Recommended day-to-day workflow
 
-### 10.3 Safe Fallback
+### Step 1: start from a spec, not a vague idea
 
-以下情况都会自动回退：
+When you want to add or change something substantial:
 
-- 缺少 API key
-- 缺少 Feishu 凭证
-- 缺少 publish token
-- Playwright 不可用
-- 缺少 browser storage state
-- 远程请求失败
-- 浏览器自动化失败
+1. create or refine the OpenSpec change
+2. make sure design / specs / tasks are explicit
+3. clarify constraints before touching code
 
-## 11. 快速启动
+Typical examples in this repo:
 
-### Windows / PowerShell
+- adding a new provider
+- changing workflow stages
+- extending sync targets
+- adding a new publish channel
+- changing review gates
 
-1. 安装依赖
+### Step 2: use oh-my-codex skills intentionally
 
-```powershell
+Common skill patterns for this repo:
+
+- **brainstorming** → before creative feature work
+- **writing-plans** / **openspec-propose** / **openspec-apply-change** → when turning requirements into implementation
+- **systematic-debugging** → before bug fixes
+- **verification-before-completion** → before claiming success
+- **github:yeet** → when publishing the branch to GitHub
+
+The key idea: do not jump straight into coding. Let the workflow discipline shape the implementation.
+
+### Step 3: implement through the existing architecture
+
+For this project, implementation should usually follow this order:
+
+1. `contracts`
+2. `config`
+3. `provider`
+4. `registry`
+5. `service wiring`
+6. `REST / MCP / Web`
+7. `tests`
+8. `docs`
+
+That sequence keeps the system coherent and avoids leaking external vendor logic into business services.
+
+### Step 4: verify before calling it done
+
+Before finishing a change:
+
+- run tests
+- check diagnostics surfaces
+- check docs and `.env.example`
+- confirm safety defaults still hold
+- confirm no external integration bypassed the provider registry
+
+### Step 5: publish intentionally
+
+When pushing work:
+
+- review scope
+- stage only intended changes
+- commit clearly
+- push to GitHub
+- prefer draft PRs unless explicitly ready for review
+
+---
+
+## Example: adding a new provider correctly
+
+If you want to add another provider later, the recommended OpenSpec + oh-my-codex path is:
+
+1. **OpenSpec**: define the new provider change
+2. document:
+   - provider purpose
+   - business boundaries
+   - env contract
+   - safety behavior
+   - diagnostics expectations
+3. **oh-my-codex**: use planning/execution skills to implement
+4. update:
+   - `app/domain/contracts.py`
+   - `app/core/config.py`
+   - `app/infrastructure/providers/...`
+   - `app/infrastructure/providers/registry.py`
+   - `app/application/services.py`
+   - REST / MCP / Web surfaces
+   - tests
+   - docs
+
+This is exactly how the current Scrapling, lark-cli, and configurable model-provider integrations were approached.
+
+---
+
+## Getting started
+
+### 1. Clone
+
+```bash
+git clone https://github.com/FRANKOUST/Rednote-agent-pro.git
+cd Rednote-agent-pro
+```
+
+### 2. Create env file
+
+```bash
+cp .env.example .env
+```
+
+### 3. Install
+
+```bash
 pip install -e .[dev]
 ```
 
-2. 复制环境变量模板
+If you want live Scrapling fetchers later:
 
-```powershell
-copy .env.example .env
+```bash
+pip install -e .[collectors]
+scrapling install
 ```
 
-3. 启动服务
+### 4. Verify
 
-```powershell
-uvicorn app.main:app --reload
-```
-
-4. 打开以下入口
-
-- Web Console: `http://127.0.0.1:8000/`
-- OpenAPI: `http://127.0.0.1:8000/docs`
-- MCP-style endpoint: `http://127.0.0.1:8000/mcp`
-
-## 12. Web Console 演示路径
-
-### Dashboard
-
-- `/`
-
-你可以：
-
-- 发起 pipeline run
-- 查看 runs
-- 查看 drafts
-- 审核 draft
-- 发布 draft
-- 查看 publish jobs
-- 查看 sync records
-- 查看 audit logs
-- 查看 provider diagnostics / provider health
-
-### Entity View
-
-- `/console/entities`
-
-当前可查看：
-
-- Source Posts
-- Analysis Reports
-- Topic Suggestions
-- Image Assets
-
-### Entity Detail
-
-当前已支持 detail page：
-
-- `/console/source-posts/{id}`
-- `/console/analysis-reports/{id}`
-- `/console/topic-suggestions/{id}`
-- `/console/image-assets/{id}`
-- `/console/runs/{id}`
-- `/console/runs/{id}/diagnostics`
-
-## 13. REST API 概览
-
-### Workflow
-
-- `POST /api/pipeline-runs`
-- `GET /api/pipeline-runs`
-- `GET /api/pipeline-runs/{id}`
-- `GET /api/pipeline-runs/{id}/diagnostics`
-
-### Draft
-
-- `GET /api/drafts`
-- `POST /api/drafts/{id}/approve`
-- `POST /api/drafts/{id}/reject`
-- `POST /api/drafts/{id}/publish`
-
-### Entity APIs
-
-- `GET /api/source-posts`
-- `GET /api/source-posts/{id}`
-- `GET /api/analysis-reports`
-- `GET /api/analysis-reports/{id}`
-- `GET /api/topic-suggestions`
-- `GET /api/topic-suggestions/{id}`
-- `GET /api/image-assets`
-- `GET /api/image-assets/{id}`
-
-### Ops / Audit / Sync
-
-- `GET /api/publish-jobs`
-- `GET /api/sync-records`
-- `GET /api/audit-logs`
-- `GET /api/observability/summary`
-- `GET /api/providers/diagnostics`
-- `GET /api/providers/health`
-- `GET /api/health`
-
-## 14. MCP Tool Surface
-
-当前支持工具包括：
-
-- `start_pipeline`
-- `list_runs`
-- `list_drafts`
-- `list_publish_jobs`
-- `list_source_posts`
-- `list_analysis_reports`
-- `list_topic_suggestions`
-- `list_image_assets`
-- `get_source_post`
-- `get_analysis_report`
-- `get_topic_suggestion`
-- `get_image_asset`
-
-## 15. 示例调用
-
-### 启动 pipeline
-
-```powershell
-curl -X POST http://127.0.0.1:8000/api/pipeline-runs `
-  -H "Content-Type: application/json" `
-  -d "{\"keywords\":[\"咖啡\"],\"min_likes\":100,\"auto_publish\":false}"
-```
-
-### 查询 entity API
-
-```powershell
-curl http://127.0.0.1:8000/api/source-posts
-curl http://127.0.0.1:8000/api/analysis-reports
-curl http://127.0.0.1:8000/api/topic-suggestions
-curl http://127.0.0.1:8000/api/image-assets
-```
-
-### MCP tools/list
-
-```powershell
-curl -X POST http://127.0.0.1:8000/mcp `
-  -H "Content-Type: application/json" `
-  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}"
-```
-
-### MCP tools/call
-
-```powershell
-curl -X POST http://127.0.0.1:8000/mcp `
-  -H "Content-Type: application/json" `
-  -d "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"start_pipeline\",\"arguments\":{\"keywords\":[\"护肤\"],\"auto_publish\":false}}}"
-```
-
-## 16. 测试
-
-运行：
-
-```powershell
+```bash
 pytest -q
 ```
 
-当前结果：
+---
 
-- `53 passed`
+## Environment configuration
 
-测试覆盖重点：
+### Collector
 
-- 状态机
-- provider registry
-- live provider fallback
-- safe Playwright fallback
-- external worker adapter
-- REST 主链路
-- MCP tool surface
-- auth / observability
-- Web Console entity 视图
+```env
+XHS_DEFAULT_COLLECTOR_PROVIDER=scrapling_xhs
+XHS_SCRAPLING_MODE=fixture
+XHS_SCRAPLING_TIMEOUT_SECONDS=30
+XHS_SCRAPLING_COOKIES_PATH=./data/scrapling/cookies.json
+XHS_SCRAPLING_STORAGE_STATE_PATH=./data/scrapling/storage_state.json
+```
 
-## 17. 文档与规范
+### Sync
 
-关键文档：
+```env
+XHS_DEFAULT_SYNC_PROVIDER=feishu_cli
+XHS_FEISHU_CLI_BIN=lark-cli
+XHS_FEISHU_CLI_AS=user
+XHS_FEISHU_SYNC_MODE=base
+XHS_FEISHU_CLI_DRY_RUN=true
+XHS_FEISHU_BASE_TOKEN=
+XHS_FEISHU_TABLE_ID=
+```
 
-- [repository audit](G:\projects\tests\test\docs\superpowers\specs\2026-04-04-repository-audit.md)
-- [system blueprint](G:\projects\tests\test\docs\superpowers\specs\2026-04-04-system-blueprint.md)
-- [canonical change map](G:\projects\tests\test\docs\superpowers\specs\2026-04-04-canonical-change-map.md)
-- [implementation map](G:\projects\tests\test\docs\superpowers\plans\2026-04-04-implementation-map.md)
-- [portfolio showcase](G:\projects\tests\test\docs\portfolio\SHOWCASE.md)
-- [demo script](G:\projects\tests\test\docs\portfolio\DEMO.md)
+### Model
 
-OpenSpec canonical changes 已覆盖：
+```env
+XHS_DEFAULT_MODEL_PROVIDER=custom_model_router
+XHS_MODEL_API_KEY=
+XHS_MODEL_BASE_URL=https://api.openai.com/v1
+XHS_MODEL_NAME=gpt-4.1-mini
+XHS_MODEL_TIMEOUT_SECONDS=60
+XHS_MODEL_MAX_RETRIES=2
+XHS_MODEL_TEMPERATURE=0.2
+```
 
-- architecture-foundation
-- domain-model-and-state-machine
-- pipeline-orchestration
-- source-ingestion-and-analysis
-- draft-and-image-generation
-- review-workflow-and-audit
-- publishing-provider-system
-- feishu-sync
-- rest-api
-- mcp-server
-- web-console
-- testing-observability-and-devex
-- portfolio-packaging
+---
 
-## 18. 已知边界
+## Run the system
 
-当前版本默认优先：
+### Start app
 
-- 本地可运行
-- 主链路可演示
-- 架构边界清晰
-- provider 可替换
-- 真实 provider 有安全降级
+```bash
+uvicorn app.main:app --reload
+```
 
-当前仍未声称完成：
+### Open the Web Console
 
-- 真实小红书平台集成验证
-- 真实 Feishu Bitable 字段映射验证
-- 真实 OpenAI 返回格式在生产环境下的鲁棒消费
-- durable distributed queue backend
+- `http://127.0.0.1:8000/`
 
-## 19. 后续扩展建议
+### Useful local actions
 
-下一步适合做的方向：
+- run dry pipeline
+- trigger Scrapling search
+- trigger Scrapling detail
+- trigger Feishu sync dry-run
+- inspect provider health / diagnostics
 
-1. 验证 live shells 的真实凭证路径
-2. 增加 durable queue / worker backend
-3. 增加实体 detail 的 MCP / Web 深化体验
-4. 增加更细粒度的 provider health 与 metrics
-5. 增加 Web Console 的 review / publish / diagnostics 专页
+---
 
-## 20. 这个项目适合展示什么
+## REST / MCP / Web Console
 
-如果你把它放进作品集，这个项目最适合突出：
+### REST highlights
 
-- 平台化系统设计能力
-- provider abstraction 能力
-- 内容生产工作流建模能力
-- 人工审核与自动化能力并存的安全设计
-- agent interface 与 human interface 复用同一业务层的工程能力
-- 从规范、设计、实施计划到代码和测试的完整闭环能力
+- `POST /api/pipeline-runs`
+- `POST /api/collector-runs/search`
+- `POST /api/collector-runs/detail`
+- `POST /api/sync-runs`
+- `GET /api/providers/status`
+- `GET /api/pipeline-runs/{id}/diagnostics`
+
+### MCP tools
+
+- `start_pipeline`
+- `start_collector_search`
+- `start_collector_detail`
+- `start_sync_run`
+- `get_provider_status`
+
+### Web Console pages
+
+- `/`
+- `/console/entities`
+- `/console/collector-runs`
+- `/console/sync-runs`
+- `/console/providers`
+
+---
+
+## Repository structure
+
+```text
+app/
+  application/      shared orchestration, dispatcher, worker control
+  core/             config + middleware
+  db/               persistence models + session
+  domain/           contracts + payload schemas
+  infrastructure/   providers, registry, adapters
+  interfaces/       REST, MCP, Web
+config/             mapping config
+fixtures/           dry-run / parser fixtures
+templates/          Web Console templates
+tests/              unit + integration tests
+docs/               portfolio + planning artifacts
+```
+
+---
+
+## Safety defaults
+
+- collector defaults to fixture/dry-run mode
+- sync defaults to dry-run
+- live publish remains gated
+- manual review remains required before publish
+- schema validation is mandatory for model output
+- audit logs and diagnostics remain first-class outputs
+
+---
+
+## Quality status
+
+Current verified state:
+
+- provider-oriented architecture preserved
+- Scrapling collector integrated
+- lark-cli sync integrated
+- configurable model provider integrated
+- REST / MCP / Web share one business layer
+- **`pytest -q` → 54 passed**
+
+---
+
+## Documentation map
+
+- [`SCRAPLING_INTEGRATION.md`](./SCRAPLING_INTEGRATION.md)
+- [`FEISHU_CLI_INTEGRATION.md`](./FEISHU_CLI_INTEGRATION.md)
+- [`MODEL_PROVIDER_INTEGRATION.md`](./MODEL_PROVIDER_INTEGRATION.md)
+- [`REAL_OPS_READINESS.md`](./REAL_OPS_READINESS.md)
+- [`OPERATOR_RUNBOOK.md`](./OPERATOR_RUNBOOK.md)
+- [`PROVIDER_INTEGRATION_MATRIX.md`](./PROVIDER_INTEGRATION_MATRIX.md)
+- [`ACCEPTANCE_CHECKLIST.md`](./ACCEPTANCE_CHECKLIST.md)
+- [`DEMO.md`](./DEMO.md)
+- [`SHOWCASE.md`](./SHOWCASE.md)
+
+---
+
+## Current real-world blockers
+
+The codebase is ready for controlled small-scale validation, but real-world verification still needs:
+
+1. authenticated Scrapling/XHS session material
+2. authenticated `lark-cli` setup for Feishu
+3. one real OpenAI-compatible provider key/base_url/model
+
+Once those are provided, the remaining work is live verification, validation reporting, and final acceptance closeout.

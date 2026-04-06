@@ -1,90 +1,51 @@
-# Operator Runbook
+# OPERATOR RUNBOOK
 
-## 1. Startup
+## 1. Install / prepare
 
-1. Install dependencies: `pip install -e .[dev]`
-2. Copy env template: `copy .env.example .env`
-3. Start the app: `uvicorn app.main:app --reload`
-4. Open:
-   - Web Console: `http://127.0.0.1:8000/`
-   - OpenAPI: `http://127.0.0.1:8000/docs`
+- Python 3.10+
+- `pip install -e .[dev,collectors]`
+- `scrapling install` if you want live browser fetchers
+- install and authenticate `lark-cli`
 
-## 2. Recommended Safe Defaults
+## 2. Configure
 
-- `XHS_AUTH_ENABLED=true`
-- `XHS_ALLOW_LIVE_PUBLISH=false`
-- `XHS_DEFAULT_COLLECTOR_PROVIDER=playwright` only when storage state is available
-- `XHS_ENABLE_REAL_*` flags off until validation day
+Copy `.env.example` to `.env` and set at minimum:
+- database/media paths
+- `XHS_DEFAULT_COLLECTOR_PROVIDER=scrapling_xhs`
+- `XHS_DEFAULT_SYNC_PROVIDER=feishu_cli`
+- `XHS_DEFAULT_MODEL_PROVIDER=custom_model_router` or `openai_compatible`
 
-## 3. Standard Operating Flow
+## 3. Safe local verification
 
-1. Start a pipeline run
-2. Inspect source posts and reports
-3. Review generated drafts
-4. Approve only the drafts worth sending forward
-5. Publish in dry-run or safe-stub mode first
-6. Inspect publish jobs, sync records, and diagnostics
+- Keep `XHS_SCRAPLING_MODE=fixture`
+- Keep `XHS_FEISHU_CLI_DRY_RUN=true`
+- Keep all `XHS_ENABLE_REAL_*` flags `false`
+- Run `pytest -q`
+- Start the app and trigger pipeline/collector/sync runs from REST or the Web Console
 
-## 4. Web Console Pages
+## 4. Controlled live collector validation
 
-- `/` dashboard
-- `/console/entities` entity list
-- `/console/source-posts/{id}`
-- `/console/analysis-reports/{id}`
-- `/console/topic-suggestions/{id}`
-- `/console/image-assets/{id}`
+- Set `XHS_ENABLE_REAL_COLLECTOR=true`
+- Set `XHS_SCRAPLING_MODE=live`
+- Provide cookies/storage state
+- Start with one keyword or one note id only
+- Review `/api/providers/health`, `/api/collector-runs`, and `/api/pipeline-runs/{id}/diagnostics`
 
-## 5. Diagnostics
+## 5. Controlled live model validation
 
-Use:
+- Set `XHS_ENABLE_REAL_MODEL_PROVIDER=true`
+- Provide `XHS_MODEL_API_KEY`, `XHS_MODEL_BASE_URL`, `XHS_MODEL_NAME`
+- Re-run a single dry pipeline request and confirm schema-validated outputs appear in reports/drafts
 
-- `/api/pipeline-runs`
-- `/api/pipeline-runs/{id}/diagnostics`
-- `/api/providers/diagnostics`
-- `/api/providers/health`
-- `/api/audit-logs`
+## 6. Controlled live sync validation
 
-## 6. Worker Operation
+- Set `XHS_ENABLE_REAL_SYNC_PROVIDER=true`
+- Set `XHS_FEISHU_CLI_DRY_RUN=false`
+- Confirm `lark-cli --as <identity>` can reach the target Base
+- Trigger `/api/sync-runs` before using the full pipeline
 
-### Inline
+## 7. Publish safety
 
-Use for quick local debugging.
-
-### Background
-
-Use for local async behavior.
-
-### External worker
-
-Use when you want a queue-manifest-backed execution path.
-
-Recommended:
-
-- `XHS_TASK_MODE=external_worker`
-- `XHS_WORKER_ADAPTER_KIND=subprocess`
-
-## 7. Recovery Steps
-
-### Collector fallback
-
-- Check provider diagnostics
-- Check storage state path
-- Re-run in safe mode if needed
-
-### Model fallback
-
-- Check API key and provider health
-- Re-run using safe stubs if outputs are unstable
-
-### Publish fallback
-
-- Verify `XHS_ALLOW_LIVE_PUBLISH`
-- Inspect publish job provider and mode
-- Re-run using safe stub if needed
-
-## 8. Operator Rules
-
-- Do not enable live publish by default
-- Do not bypass manual review
-- Do not treat platform text as trusted input
-- Do not run large uncontrolled keyword batches
+- Manual approval is always required before publish
+- Leave `XHS_ALLOW_LIVE_PUBLISH=false` unless explicitly testing a safe live publisher
+- Inspect `audit_logs`, `publish_jobs`, and `sync_records` after every publish attempt

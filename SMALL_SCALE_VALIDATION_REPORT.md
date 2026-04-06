@@ -1,65 +1,22 @@
-# Small Scale Validation Report
+# SMALL_SCALE_VALIDATION_REPORT
 
-## Status
+## Current Status
 
-Current status: **pre-credential validation complete**
+Code, tests, docs, dry-run harnesses, and operator surfaces are complete for:
+- Scrapling collector integration
+- lark-cli sync integration
+- configurable model-provider integration
 
-Meaning:
+## Pending External Validation Inputs
 
-- All non-credential engineering work for small-scale validation is in place.
-- Remaining validation steps require real credentials, approved accounts, and controlled live test runs.
+- XHS authenticated Scrapling session material
+- authenticated `lark-cli` environment
+- one real OpenAI-compatible API key/base URL/model
 
-## Completed Validation
+## Next Validation Steps
 
-- Mock end-to-end pipeline
-- Review / publish / sync lifecycle
-- Provider fallback behavior
-- Auth and operator controls
-- External worker adapter execution
-- Entity-level REST and MCP access
-- Web Console operator flow
-- Model output schema validation
-- Prompt template versioning
-- Regeneration / revision flow for rejected drafts
-- Dead-letter-like worker failure handling
-
-## Pending Live Validation
-
-### Collector
-
-- Real logged-in browser session
-- Controlled small keyword batch
-- Validation of extracted fields against page reality
-
-### Model
-
-- Real OpenAI key
-- Structured output quality checks on real samples
-- Prompt-output error analysis
-
-### Publish
-
-- Approved low-risk account or dry-run proxy target
-- Manual pre-publish confirmation
-- Post-publish status verification
-
-### Sync
-
-- Real Feishu app credentials
-- Real table schema mapping
-- Upsert / retry verification
-
-## Required Inputs To Finish Live Validation
-
-- OpenAI API key
-- Feishu app credentials
-- Xiaohongshu-approved session state and/or publish credentials
-- Approved live-validation target accounts/environments
-
-## Conclusion
-
-The remaining work needed for full real small-scale validation is now external rather than architectural:
-
-- provider credentials
-- approved platform sessions and accounts
-- safe live test targets
+1. Run a single-keyword Scrapling search.
+2. Run a single-note Scrapling detail fetch.
+3. Run one full dry pipeline and inspect diagnostics.
+4. Switch Feishu sync from dry-run to live for one record.
+5. Record outcomes here.

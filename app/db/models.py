@@ -26,11 +26,46 @@ class WorkflowRun(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class CollectorRun(Base):
+    __tablename__ = "collector_runs"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=generate_id)
+    workflow_run_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    provider: Mapped[str] = mapped_column(String(128), nullable=False)
+    collection_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    request_payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    result_summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    diagnostics: Mapped[dict] = mapped_column(JSON, default=dict)
+    failure_category: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SyncRun(Base):
+    __tablename__ = "sync_runs"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=generate_id)
+    provider: Mapped[str] = mapped_column(String(128), nullable=False)
+    entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    dry_run: Mapped[int] = mapped_column(Integer, default=0)
+    request_payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    result_summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    diagnostics: Mapped[dict] = mapped_column(JSON, default=dict)
+    failure_category: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class SourcePost(Base):
     __tablename__ = "source_posts"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=generate_id)
     run_id: Mapped[str] = mapped_column(ForeignKey("workflow_runs.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(128), default="")
     keyword: Mapped[str] = mapped_column(String(128), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
@@ -123,9 +158,13 @@ class SyncRecord(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=generate_id)
     entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
     entity_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    provider: Mapped[str] = mapped_column(String(128), default="")
     target: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
+    dry_run: Mapped[int] = mapped_column(Integer, default=0)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    diagnostics: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class AuditLog(Base):

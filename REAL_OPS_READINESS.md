@@ -1,48 +1,29 @@
-# Real Ops Readiness
+# REAL_OPS_READINESS
 
-## Purpose
+## Ready Now
 
-This document defines whether the project is ready for small-scale real operation under controlled conditions.
+- Scrapling provider wiring, selector/extractor harness, dry-run fixtures, diagnostics, and run persistence.
+- lark-cli sync provider wiring, Base payload builder, dry-run command path, result parsing, retry metadata, and SyncRecord persistence.
+- Unified model-provider env configuration, OpenAI-compatible invocation path, router abstraction, schema validation, and safe fallback.
+- REST / MCP / Web provider status visibility plus run-level diagnostics.
+- Test-covered end-to-end dry-run workflow (`54 passed`).
 
-## Current Readiness Level
+## Remaining Real Blockers
 
-Status: **Conditionally ready for controlled small-scale validation**
+1. Real XHS collection material
+   - `XHS_SCRAPLING_MODE=live`
+   - valid cookies and/or storage state for the target account
+2. Real Feishu CLI environment
+   - installed/authenticated `lark-cli`
+   - target Base token + table id (or Sheet token/range)
+3. Real model vendor credentials
+   - `XHS_MODEL_API_KEY`
+   - `XHS_MODEL_BASE_URL`
+   - `XHS_MODEL_NAME`
 
-Meaning:
+## Ready-for-validation Sequence
 
-- The platform is operationally ready for supervised runs using safe defaults.
-- Real integrations are wired and can be validated once credentials and approved accounts are available.
-- The system is not configured for unattended mass automation.
-
-## What Is Ready
-
-- Controlled pipeline execution
-- Manual review before publish
-- Live-publish safety gate
-- Run, stage, sync, publish, and audit persistence
-- Provider diagnostics and health checks
-- REST, MCP, and Web operator entrypoints
-- External worker adapters for local small-scale execution
-
-## What Still Requires Real Validation
-
-- Real authenticated Xiaohongshu browser sessions
-- Real OpenAI responses under production prompts and schemas
-- Real Feishu table mappings and idempotent updates
-- Real publish provider permissions and platform-side behavior
-
-## Safe Operating Constraints
-
-- Keep `XHS_ALLOW_LIVE_PUBLISH=false` by default
-- Use small keyword batches
-- Use one operator session at a time during validation
-- Review every generated draft manually
-- Capture all validation runs in the validation report
-
-## Minimum Requirements Before Enabling Live Validation
-
-- Approved account/session for collector
-- Approved account/session for browser publish if used
-- Valid OpenAI API key
-- Valid Feishu app credentials
-- Operator on duty to review outputs and inspect diagnostics
+1. Run Scrapling search/detail in controlled low-volume mode.
+2. Run the full pipeline with review-only publish.
+3. Execute Feishu sync dry-run, then live sync.
+4. Capture results in `SMALL_SCALE_VALIDATION_REPORT.md`.

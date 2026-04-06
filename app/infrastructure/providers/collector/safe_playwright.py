@@ -13,6 +13,7 @@ class SafePlaywrightCollectorProvider:
     def __init__(self) -> None:
         self.settings = get_settings()
         self.mock = MockCollectorProvider()
+        self.last_run_metadata: dict = {}
 
     def collect(self, payload: dict) -> list[SourcePostPayload]:
         if not self.settings.enable_real_collector:
@@ -25,9 +26,15 @@ class SafePlaywrightCollectorProvider:
             return self._fallback_collect(payload, reason="playwright dependency unavailable")
 
         try:
-            return self._collect_with_playwright(payload)
-        except Exception:
-            return self._fallback_collect(payload, reason="playwright collection error")
+            posts = self._collect_with_playwright(payload)
+            self.last_run_metadata = {
+                "status": "completed",
+                "mode": "playwright-live-shell",
+                "source_posts": len(posts),
+            }
+            return posts
+        except Exception as exc:
+            return self._fallback_collect(payload, reason=f"playwright collection error: {exc}")
 
     @staticmethod
     def _playwright_available() -> bool:
@@ -96,4 +103,22 @@ class SafePlaywrightCollectorProvider:
             raw["collector_mode"] = "safe-fallback"
             raw["fallback_reason"] = reason
             post.raw_metrics = raw
+        self.last_run_metadata = {
+            "status": "fallback",
+            "mode": "safe_playwright",
+            "failure_category": "runtime",
+            "reason": reason,
+            "source_posts": len(posts),
+        }
         return posts
+
+    def health(self) -> dict:
+        storage_exists = Path(self.settings.playwright_storage_state_path).exists()
+        return {
+            "status": "ready" if storage_exists or not self.settings.enable_real_collector else "degraded",
+            "reason": "playwright safe collector available" if storage_exists or not self.settings.enable_real_collector else "missing storage state",
+            "storage_state_exists": storage_exists,
+        }
+
+    def diagnostics(self) -> dict:
+        return {"provider_type": "safe_playwright", "last_run": self.last_run_metadata}

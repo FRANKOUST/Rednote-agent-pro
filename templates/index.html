@@ -6,41 +6,68 @@
     <title>{{ app_name }}</title>
     <style>
       body { font-family: Arial, sans-serif; margin: 0; background: #f6f1ea; color: #1b1b1b; }
-      .wrap { max-width: 1100px; margin: 0 auto; padding: 32px; }
+      .wrap { max-width: 1180px; margin: 0 auto; padding: 32px; }
       .hero { background: linear-gradient(135deg, #ffffff, #ffe7d6); border: 1px solid #f2c7a7; border-radius: 24px; padding: 28px; }
-      .grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; margin-top: 24px; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 24px; }
       .card { background: #ffffff; border-radius: 20px; padding: 20px; border: 1px solid #ead8c8; }
       h1, h2, h3 { margin-top: 0; }
       ul { padding-left: 18px; }
-      .draft { border-top: 1px solid #f0e3d6; padding-top: 12px; margin-top: 12px; }
       button { background: #d94841; color: white; border: 0; border-radius: 999px; padding: 10px 16px; cursor: pointer; }
-      input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #d9c3b1; margin: 12px 0; }
+      input, textarea { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #d9c3b1; margin: 12px 0; box-sizing: border-box; }
+      textarea { min-height: 96px; }
+      a { color: #d94841; }
+      .draft { border-top: 1px solid #f0e3d6; padding-top: 12px; margin-top: 12px; }
     </style>
   </head>
   <body>
     <div class="wrap">
       <section class="hero">
         <h1>{{ app_name }}</h1>
-        <p>Mocked end-to-end pipeline for Xiaohongshu mining, generation, review, publish, and sync.</p>
-        <p><a href="/console/entities">View entity outputs</a></p>
-        <form method="post" action="/console/pipeline-runs">
-          <label for="keywords">Keywords (comma-separated)</label>
-          <input id="keywords" name="keywords" value="咖啡,护肤" />
-          <button type="submit">Run Demo Pipeline</button>
-        </form>
+        <p>Controlled, auditable Xiaohongshu workflow for crawl → analyze → topic → draft → review → publish(dry-run first) → sync.</p>
+        <p><a href="/console/entities">Entity outputs</a> | <a href="/console/collector-runs">Collector runs</a> | <a href="/console/sync-runs">Sync runs</a> | <a href="/console/providers">Provider status</a></p>
       </section>
+
+      <section class="grid">
+        <div class="card">
+          <h2>Run full pipeline</h2>
+          <form method="post" action="/console/pipeline-runs">
+            <label for="keywords">Keywords</label>
+            <input id="keywords" name="keywords" value="咖啡,护肤" />
+            <button type="submit">Run dry pipeline</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Trigger Scrapling search</h2>
+          <form method="post" action="/console/collector-runs/search">
+            <label for="collector-keywords">Keywords</label>
+            <input id="collector-keywords" name="keywords" value="咖啡,健身" />
+            <button type="submit">Run search collection</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Trigger Scrapling detail</h2>
+          <form method="post" action="/console/collector-runs/detail">
+            <label for="note-ids">Note IDs</label>
+            <input id="note-ids" name="note_ids" value="note-001,note-002" />
+            <button type="submit">Run detail collection</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Trigger Feishu sync dry-run</h2>
+          <form method="post" action="/console/sync-runs">
+            <label for="entity-type">Entity type</label>
+            <input id="entity-type" name="entity_type" value="publish_job" />
+            <label for="payload-json">Payload JSON</label>
+            <textarea id="payload-json" name="payload_json">{"title":"demo","published_url":"https://example.test/post/demo"}</textarea>
+            <button type="submit">Run sync dry-run</button>
+          </form>
+        </div>
+      </section>
+
       <section class="grid">
         <div class="card">
           <h2>Recent Runs</h2>
-          {% if runs %}
-            <ul>
-              {% for run in runs %}
-                <li>{{ run.status }} - {{ run.current_stage }} - {{ run.id }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p>No runs yet.</p>
-          {% endif %}
+          {% if runs %}<ul>{% for run in runs %}<li><a href="/console/runs/{{ run.id }}">{{ run.status }} - {{ run.current_stage }} - {{ run.id }}</a></li>{% endfor %}</ul>{% else %}<p>No runs yet.</p>{% endif %}
         </div>
         <div class="card">
           <h2>Draft Queue</h2>
@@ -51,13 +78,9 @@
                 <p>Status: <strong>{{ draft.status }}</strong></p>
                 <p>{{ draft.review_notes }}</p>
                 {% if draft.status == "review_pending" %}
-                  <form method="post" action="/console/drafts/{{ draft.id }}/approve">
-                    <button type="submit">Approve</button>
-                  </form>
+                  <form method="post" action="/console/drafts/{{ draft.id }}/approve"><button type="submit">Approve</button></form>
                 {% elif draft.status == "approved" %}
-                  <form method="post" action="/console/drafts/{{ draft.id }}/publish">
-                    <button type="submit">Publish</button>
-                  </form>
+                  <form method="post" action="/console/drafts/{{ draft.id }}/publish"><button type="submit">Publish</button></form>
                 {% endif %}
               </div>
             {% endfor %}
@@ -65,30 +88,20 @@
             <p>No drafts yet.</p>
           {% endif %}
         </div>
-        <div class="card">
-          <h2>Recent Audit Logs</h2>
-          {% if audit_logs %}
-            <ul>
-              {% for item in audit_logs %}
-                <li>{{ item.event_type }} - {{ item.entity_type }} - {{ item.entity_id }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p>No audit events yet.</p>
-          {% endif %}
-        </div>
       </section>
+
       <section class="grid">
         <div class="card">
-          <h2>Provider Diagnostics</h2>
+          <h2>Observability</h2>
           <ul>
-            <li>Collector: {{ provider_diagnostics.collector.active }} (configured: {{ provider_diagnostics.collector.configured }})</li>
-            <li>LLM: {{ provider_diagnostics.language_model.active }} (configured: {{ provider_diagnostics.language_model.configured }})</li>
-            <li>Image: {{ provider_diagnostics.image.active }} (configured: {{ provider_diagnostics.image.configured }})</li>
-            <li>Publisher: {{ provider_diagnostics.publisher.active }} (configured: {{ provider_diagnostics.publisher.configured }})</li>
-            <li>Sync: {{ provider_diagnostics.sync.active }} (configured: {{ provider_diagnostics.sync.configured }})</li>
+            <li>Workflow runs: {{ observability.workflow_runs }}</li>
+            <li>Source posts: {{ observability.source_posts }}</li>
+            <li>Drafts: {{ observability.content_drafts }}</li>
+            <li>Sync records: {{ observability.sync_records }}</li>
           </ul>
-          <h3>Health</h3>
+        </div>
+        <div class="card">
+          <h2>Provider Health</h2>
           <ul>
             <li>Collector: {{ provider_health.collector.status }} - {{ provider_health.collector.reason }}</li>
             <li>LLM: {{ provider_health.language_model.status }} - {{ provider_health.language_model.reason }}</li>
@@ -96,32 +109,6 @@
             <li>Publisher: {{ provider_health.publisher.status }} - {{ provider_health.publisher.reason }}</li>
             <li>Sync: {{ provider_health.sync.status }} - {{ provider_health.sync.reason }}</li>
           </ul>
-        </div>
-      </section>
-      <section class="grid">
-        <div class="card">
-          <h2>Publish Jobs</h2>
-          {% if publish_jobs %}
-            <ul>
-              {% for job in publish_jobs %}
-                <li>{{ job.status }} - {{ job.published_url or "pending" }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p>No publish jobs yet.</p>
-          {% endif %}
-        </div>
-        <div class="card">
-          <h2>Sync Records</h2>
-          {% if sync_records %}
-            <ul>
-              {% for record in sync_records %}
-                <li>{{ record.status }} - {{ record.target }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p>No sync records yet.</p>
-          {% endif %}
         </div>
       </section>
     </div>

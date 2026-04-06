@@ -20,6 +20,12 @@ class CollectorProvider(Protocol):
     def collect(self, payload: dict) -> list[SourcePostPayload]:
         ...
 
+    def health(self) -> dict:
+        ...
+
+    def diagnostics(self) -> dict:
+        ...
+
 
 class LanguageModelProvider(Protocol):
     name: str
@@ -33,11 +39,23 @@ class LanguageModelProvider(Protocol):
     def generate_draft(self, topic: TopicPayload, analysis: AnalysisPayload) -> DraftPayload:
         ...
 
+    def health(self) -> dict:
+        ...
+
+    def diagnostics(self) -> dict:
+        ...
+
 
 class ImageProvider(Protocol):
     name: str
 
     def generate(self, draft: DraftPayload) -> ImagePayload:
+        ...
+
+    def health(self) -> dict:
+        ...
+
+    def diagnostics(self) -> dict:
         ...
 
 
@@ -47,9 +65,21 @@ class PublisherProvider(Protocol):
     def publish(self, draft: DraftPayload) -> PublishPayload:
         ...
 
+    def health(self) -> dict:
+        ...
+
+    def diagnostics(self) -> dict:
+        ...
+
 
 class SyncProvider(Protocol):
     name: str
 
     def sync(self, entity_type: str, payload: dict) -> dict:
+        ...
+
+    def health(self) -> dict:
+        ...
+
+    def diagnostics(self) -> dict:
         ...

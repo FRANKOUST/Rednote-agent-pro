@@ -1,0 +1,17 @@
+{
+  "source_post_batch": {
+    "run_id": "run_id",
+    "count": "count",
+    "keywords": "keywords"
+  },
+  "content_draft_batch": {
+    "run_id": "run_id",
+    "count": "count",
+    "draft_ids": "draft_ids"
+  },
+  "publish_job": {
+    "title": "title",
+    "published_url": "published_url",
+    "draft_id": "draft_id"
+  }
+}

@@ -8,6 +8,9 @@ from app.domain.models import AnalysisPayload, DraftPayload, SourcePostPayload, 
 class MockLanguageModelProvider:
     name = "mock-llm"
 
+    def __init__(self) -> None:
+        self.last_run_metadata: dict = {}
+
     def analyze(self, posts: list[SourcePostPayload]) -> AnalysisPayload:
         tokens = Counter()
         tags = Counter()
@@ -16,6 +19,7 @@ class MockLanguageModelProvider:
             tags.update(post.tags)
         top_keywords = [item for item, _ in tokens.most_common(5)]
         top_tags = [item for item, _ in tags.most_common(5)]
+        self.last_run_metadata = {"stage": "analyze", "source_posts": len(posts)}
         return AnalysisPayload(
             summary="高互动内容集中在清单化表达、避坑建议和结果对比。",
             top_keywords=top_keywords,
@@ -26,6 +30,7 @@ class MockLanguageModelProvider:
 
     def suggest_topics(self, analysis: AnalysisPayload) -> list[TopicPayload]:
         base = analysis.top_tags[0] if analysis.top_tags else "#灵感"
+        self.last_run_metadata = {"stage": "suggest_topics", "top_tags": analysis.top_tags[:3]}
         return [
             TopicPayload(
                 title="3个可直接套用的小红书爆款选题模板",
@@ -41,6 +46,7 @@ class MockLanguageModelProvider:
 
     def generate_draft(self, topic: TopicPayload, analysis: AnalysisPayload) -> DraftPayload:
         tag = analysis.top_tags[0] if analysis.top_tags else "#小红书运营"
+        self.last_run_metadata = {"stage": "generate_draft", "topic": topic.title}
         return DraftPayload(
             title=topic.title,
             body=(
@@ -54,3 +60,9 @@ class MockLanguageModelProvider:
             image_prompt=f"小红书风格信息卡片，主题：{topic.title}，红白配色，清爽排版。",
             content_type="note",
         )
+
+    def health(self) -> dict:
+        return {"status": "ready", "reason": "mock llm available"}
+
+    def diagnostics(self) -> dict:
+        return {"provider_type": "mock", "last_run": self.last_run_metadata}

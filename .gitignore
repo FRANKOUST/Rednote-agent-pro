@@ -23,6 +23,9 @@ data/media/
 data/session/
 data/worker-queue/
 data/worker-dead-letter/
+data/feishu_cli/
+data/playwright/
+data/scrapling/
 
 # Local tool state
 .omx/

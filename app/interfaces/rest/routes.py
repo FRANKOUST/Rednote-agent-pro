@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 
 from app.application.factory import get_pipeline_service
-from app.schemas import DraftReviewRequest, PipelineRunRequest
+from app.schemas import CollectorRunRequest, DraftReviewRequest, PipelineRunRequest, SyncRunRequest
 
 router = APIRouter(prefix="/api")
 
@@ -34,6 +34,47 @@ def get_pipeline_run(run_id: str) -> dict:
 @router.get("/pipeline-runs/{run_id}/diagnostics")
 def get_pipeline_run_diagnostics(run_id: str) -> dict:
     return get_pipeline_service().get_run_diagnostics(run_id)
+
+
+@router.post("/collector-runs/search", status_code=202)
+def start_search_collector_run(request: CollectorRunRequest) -> dict:
+    return get_pipeline_service().start_collector_run(request.model_dump(), "search")
+
+
+@router.post("/collector-runs/detail", status_code=202)
+def start_detail_collector_run(request: CollectorRunRequest) -> dict:
+    return get_pipeline_service().start_collector_run(request.model_dump(), "detail")
+
+
+@router.get("/collector-runs")
+def list_collector_runs() -> dict:
+    return get_pipeline_service().list_collector_runs()
+
+
+@router.get("/collector-runs/{collector_run_id}")
+def get_collector_run(collector_run_id: str) -> dict:
+    try:
+        return get_pipeline_service().get_collector_run(collector_run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/sync-runs", status_code=202)
+def start_sync_run(request: SyncRunRequest) -> dict:
+    return get_pipeline_service().start_sync_run(request.entity_type, request.payload, request.dry_run)
+
+
+@router.get("/sync-runs")
+def list_sync_runs() -> dict:
+    return get_pipeline_service().list_sync_runs()
+
+
+@router.get("/sync-runs/{sync_run_id}")
+def get_sync_run(sync_run_id: str) -> dict:
+    try:
+        return get_pipeline_service().get_sync_run(sync_run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/drafts")
@@ -153,6 +194,12 @@ def provider_diagnostics() -> dict:
 @router.get("/providers/health")
 def provider_health() -> dict:
     return get_pipeline_service().provider_health()
+
+
+@router.get("/providers/status")
+def provider_status() -> dict:
+    service = get_pipeline_service()
+    return {"diagnostics": service.provider_diagnostics(), "health": service.provider_health()}
 
 
 @router.get("/external-workers/jobs/{job_id}")

@@ -1,25 +1,5 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ app_name }} Diagnostics</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 0; background: #f6f1ea; color: #1b1b1b; }
-      .wrap { max-width: 960px; margin: 0 auto; padding: 32px; }
-      .card { background: #ffffff; border-radius: 20px; padding: 24px; border: 1px solid #ead8c8; }
-      pre { white-space: pre-wrap; word-break: break-word; background: #faf5ef; padding: 12px; border-radius: 12px; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <div class="card">
-        <h1>{{ title }}</h1>
-        {% for item in items %}
-          <h3>{{ item.stage }} - {{ item.status }} - {{ item.provider }}</h3>
-          <pre>{{ item.details | tojson(indent=2) }}</pre>
-        {% endfor %}
-      </div>
-    </div>
-  </body>
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{{ app_name }} Diagnostics</title><style>body{font-family:Arial,sans-serif;margin:0;background:#f6f1ea;color:#1b1b1b}.wrap{max-width:960px;margin:0 auto;padding:32px}.card{background:#fff;border-radius:20px;padding:24px;border:1px solid #ead8c8}pre{white-space:pre-wrap;word-break:break-word;background:#faf5ef;padding:12px;border-radius:12px}</style></head>
+  <body><div class="wrap"><div class="card"><h1>{{ title }}</h1>{% for item in items %}<h3>{{ item.stage }} - {{ item.status }} - {{ item.provider }}</h3><p>{{ item.started_at }} → {{ item.finished_at }}</p><pre>{{ item | tojson(indent=2) }}</pre>{% endfor %}</div></div></body>
 </html>

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.core.config import get_settings
-from app.domain.models import AnalysisPayload, DraftPayload, SourcePostPayload, TopicPayload
+from app.domain.models import AnalysisPayload, DraftPayload, ImagePlanPayload, SourcePostPayload, TopicPayload
 from app.infrastructure.providers.llm.mock import MockLanguageModelProvider
 
 
@@ -20,6 +20,9 @@ class OpenAICompatibleSafeLLMStubProvider:
 
     def generate_draft(self, topic: TopicPayload, analysis: AnalysisPayload) -> DraftPayload:
         return self.mock.generate_draft(topic, analysis)
+
+    def plan_image(self, draft: DraftPayload, analysis: AnalysisPayload | None = None) -> ImagePlanPayload:
+        return self.mock.plan_image(draft, analysis)
 
     def health(self) -> dict:
         return {"status": "ready", "reason": "safe llm stub available"}

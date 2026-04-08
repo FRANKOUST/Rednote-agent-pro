@@ -7,10 +7,10 @@ from typing import TypeVar
 import httpx
 
 from app.core.config import get_settings
-from app.domain.model_schemas import AnalysisResultSchema, DraftResultSchema, TopicSuggestionListSchema
-from app.domain.models import AnalysisPayload, DraftPayload, SourcePostPayload, TopicPayload
+from app.domain.model_schemas import AnalysisResultSchema, DraftResultSchema, ImagePlanSchema, TopicSuggestionListSchema
+from app.domain.models import AnalysisPayload, DraftPayload, ImagePlanPayload, SourcePostPayload, TopicPayload
 from app.infrastructure.providers.llm.openai_safe_stub import OpenAICompatibleSafeLLMStubProvider
-from app.infrastructure.providers.llm.prompt_templates import build_analysis_prompt, build_draft_prompt, build_topic_prompt
+from app.infrastructure.providers.llm.prompt_templates import build_prompt_request, get_prompt_template
 
 SchemaT = TypeVar("SchemaT")
 
@@ -24,8 +24,9 @@ class OpenAICompatibleLLMProvider:
         self.last_run_metadata: dict = {}
 
     def analyze(self, posts: list[SourcePostPayload]) -> AnalysisPayload:
-        prompt = build_analysis_prompt(
-            [
+        prompt = build_prompt_request(
+            "analyze",
+            posts=[
                 {
                     "title": post.title,
                     "content": post.content,
@@ -33,47 +34,46 @@ class OpenAICompatibleLLMProvider:
                     "likes": post.likes,
                     "favorites": post.favorites,
                     "comments": post.comments,
+                    "published_at": post.published_at,
+                    "content_type": post.content_type,
                 }
                 for post in posts
-            ]
+            ],
+            request_context={"post_count": len(posts)},
         )
         try:
             data = self._invoke_schema("analyze", prompt, AnalysisResultSchema)
-            return AnalysisPayload(
-                summary=data.summary,
-                top_keywords=data.top_keywords,
-                top_tags=data.top_tags,
-                title_patterns=data.title_patterns,
-                audience_insights=data.audience_insights,
-            )
+            return AnalysisPayload(**data.model_dump())
         except Exception as exc:
             self.last_run_metadata = {"stage": "analyze", "mode": "fallback", "error": str(exc)}
             return self.safe.analyze(posts)
 
     def suggest_topics(self, analysis: AnalysisPayload) -> list[TopicPayload]:
-        prompt = build_topic_prompt(asdict(analysis))
+        prompt = build_prompt_request("topic", analysis=asdict(analysis), request_context={})
         try:
             data = self._invoke_schema("topic", prompt, TopicSuggestionListSchema)
-            return [TopicPayload(title=item.title, rationale=item.rationale, angle=item.angle) for item in data.topics]
+            return [TopicPayload(**item.model_dump(), angle=item.title) for item in data.topics]
         except Exception as exc:
             self.last_run_metadata = {"stage": "topic", "mode": "fallback", "error": str(exc)}
             return self.safe.suggest_topics(analysis)
 
     def generate_draft(self, topic: TopicPayload, analysis: AnalysisPayload) -> DraftPayload:
-        prompt = build_draft_prompt(asdict(topic), asdict(analysis))
+        prompt = build_prompt_request("draft", topic=asdict(topic), analysis=asdict(analysis), request_context={})
         try:
             data = self._invoke_schema("draft", prompt, DraftResultSchema)
-            return DraftPayload(
-                title=data.title,
-                body=data.body,
-                tags=data.tags,
-                cta=data.cta,
-                image_prompt=data.image_prompt,
-                content_type=data.content_type,
-            )
+            return DraftPayload(**data.model_dump())
         except Exception as exc:
             self.last_run_metadata = {"stage": "draft", "mode": "fallback", "error": str(exc)}
             return self.safe.generate_draft(topic, analysis)
+
+    def plan_image(self, draft: DraftPayload, analysis: AnalysisPayload | None = None) -> ImagePlanPayload:
+        prompt = build_prompt_request("image", draft=asdict(draft), analysis=asdict(analysis) if analysis else {}, request_context={})
+        try:
+            data = self._invoke_schema("image", prompt, ImagePlanSchema)
+            return ImagePlanPayload(**data.model_dump())
+        except Exception as exc:
+            self.last_run_metadata = {"stage": "image", "mode": "fallback", "error": str(exc)}
+            return self.safe.plan_image(draft, analysis)
 
     def health(self) -> dict:
         has_credentials = bool(self.settings.resolved_model_api_key and self.settings.resolved_model_name)
@@ -95,9 +95,12 @@ class OpenAICompatibleLLMProvider:
     def _invoke_schema(self, stage: str, prompt: dict, schema: type[SchemaT]) -> SchemaT:
         payload = self._chat_json(stage, prompt)
         validated = schema.model_validate(payload)
+        template = get_prompt_template(stage)
         self.last_run_metadata = {
             "stage": stage,
             "mode": "live",
+            "template_id": template.template_id,
+            "template_version": template.version,
             "model": self.settings.resolved_model_name,
             "base_url": self.settings.resolved_model_base_url,
         }

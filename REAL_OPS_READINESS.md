@@ -1,29 +1,33 @@
 # REAL_OPS_READINESS
 
-## Ready Now
+## 当前状态
 
-- Scrapling provider wiring, selector/extractor harness, dry-run fixtures, diagnostics, and run persistence.
-- lark-cli sync provider wiring, Base payload builder, dry-run command path, result parsing, retry metadata, and SyncRecord persistence.
-- Unified model-provider env configuration, OpenAI-compatible invocation path, router abstraction, schema validation, and safe fallback.
-- REST / MCP / Web provider status visibility plus run-level diagnostics.
-- Test-covered end-to-end dry-run workflow (`54 passed`).
+项目已达到“真实外部权限之外基本完成”的状态：
 
-## Remaining Real Blockers
+- 8 阶段内容流水线、REST、MCP、Web 工作台、schema、prompt、publish/sync 语义、tests/docs 均已就位
+- 默认可用 fixture/mock/safe-stub 完成整条 dry-run 演示链路
+- 真实验证仅受外部登录态 / 密钥 / 权限限制
 
-1. Real XHS collection material
-   - `XHS_SCRAPLING_MODE=live`
-   - valid cookies and/or storage state for the target account
-2. Real Feishu CLI environment
-   - installed/authenticated `lark-cli`
-   - target Base token + table id (or Sheet token/range)
-3. Real model vendor credentials
-   - `XHS_MODEL_API_KEY`
-   - `XHS_MODEL_BASE_URL`
-   - `XHS_MODEL_NAME`
+## 剩余真实验证项
 
-## Ready-for-validation Sequence
+### Collector
+- 需要真实 XHS storage state 或 cookies
+- 需要验证真实 DOM 与当前选择器/抽取逻辑
 
-1. Run Scrapling search/detail in controlled low-volume mode.
-2. Run the full pipeline with review-only publish.
-3. Execute Feishu sync dry-run, then live sync.
-4. Capture results in `SMALL_SCALE_VALIDATION_REPORT.md`.
+### Model
+- 需要至少一个可用 OpenAI-compatible 端点
+- 需要验证真实 JSON schema 输出稳定性
+
+### Publish
+- 需要真实发布权限（browser state 或 publish API token）
+- 默认仍应保留人工审核 gate
+
+### Sync
+- 需要真实 `lark-cli` 登录态与目标 Base/Sheet 权限
+
+## 推荐真实联调顺序
+
+1. 先验证 collector login + 搜索/详情 dry-run
+2. 再验证 model analyze/topic/draft/image plan
+3. 再验证 publish preview / send（仅在确认权限后）
+4. 最后验证 sync_crawled / sync_generated

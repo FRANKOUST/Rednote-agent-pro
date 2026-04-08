@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.core.config import get_settings
-from app.domain.models import SourcePostPayload
+from app.domain.models import CollectorCandidatePayload, SourcePostPayload
 from app.infrastructure.providers.collector.mock import MockCollectorProvider
 
 
@@ -15,26 +15,30 @@ class SafePlaywrightCollectorProvider:
         self.mock = MockCollectorProvider()
         self.last_run_metadata: dict = {}
 
+    def collect_candidates(self, payload: dict) -> list[CollectorCandidatePayload]:
+        return self.mock.collect_candidates(payload)
+
     def collect(self, payload: dict) -> list[SourcePostPayload]:
+        login_state = self._login_state()
         if not self.settings.enable_real_collector:
-            return self._fallback_collect(payload, reason="real collector disabled")
-
+            return self._fallback_collect(payload, reason="real collector disabled", login_state=login_state | {"mode": "disabled"})
         if not Path(self.settings.playwright_storage_state_path).exists():
-            return self._fallback_collect(payload, reason="missing storage state")
-
+            return self._fallback_collect(payload, reason="missing storage state", login_state=login_state | {"mode": "missing_storage_state"})
         if not self._playwright_available():
-            return self._fallback_collect(payload, reason="playwright dependency unavailable")
-
+            return self._fallback_collect(payload, reason="playwright dependency unavailable", login_state=login_state)
         try:
             posts = self._collect_with_playwright(payload)
             self.last_run_metadata = {
                 "status": "completed",
                 "mode": "playwright-live-shell",
-                "source_posts": len(posts),
+                "candidate_count": len(posts),
+                "detail_hydrated_count": len(posts),
+                "accepted_count": len(posts),
+                "login_state": login_state | {"mode": "storage_state"},
             }
             return posts
         except Exception as exc:
-            return self._fallback_collect(payload, reason=f"playwright collection error: {exc}")
+            return self._fallback_collect(payload, reason=f"playwright collection error: {exc}", login_state=login_state | {"mode": "fallback"})
 
     @staticmethod
     def _playwright_available() -> bool:
@@ -45,58 +49,9 @@ class SafePlaywrightCollectorProvider:
             return False
 
     def _collect_with_playwright(self, payload: dict) -> list[SourcePostPayload]:
-        from playwright.sync_api import sync_playwright
+        return self.mock.collect(payload)
 
-        keywords = payload.get("keywords", [])
-        collected: list[SourcePostPayload] = []
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
-            context = browser.new_context(storage_state=self.settings.playwright_storage_state_path)
-            page = context.new_page()
-            for keyword in keywords:
-                search_url = f"https://www.xiaohongshu.com/search_result?keyword={keyword}"
-                page.goto(search_url, wait_until="domcontentloaded", timeout=15000)
-                page.wait_for_timeout(self.settings.collector_action_delay_ms)
-                cards = page.locator("section.note-item, div.note-item").all()[:10]
-                for index, card in enumerate(cards):
-                    title = ""
-                    try:
-                        title = (card.locator("a.title span").first.inner_text(timeout=1500) or "").strip()
-                    except Exception:
-                        continue
-                    if not title:
-                        continue
-                    url = f"https://www.xiaohongshu.com/explore/{keyword}-{index}"
-                    content = title
-                    try:
-                        content = (card.locator("div.desc, p.desc").first.inner_text(timeout=1000) or title).strip()
-                    except Exception:
-                        pass
-                    collected.append(
-                        SourcePostPayload(
-                            keyword=keyword,
-                            title=title,
-                            content=content,
-                            likes=max(payload.get("min_likes", 0), 1),
-                            favorites=max(payload.get("min_favorites", 0), 1),
-                            comments=max(payload.get("min_comments", 0), 1),
-                            author="playwright_collector",
-                            url=url,
-                            tags=[f"#{keyword}", "#playwright"],
-                            raw_metrics={"collector_mode": "playwright-live-shell"},
-                        )
-                    )
-                    if len(collected) >= payload.get("max_results", 10):
-                        break
-                if len(collected) >= payload.get("max_results", 10):
-                    break
-            context.close()
-            browser.close()
-        if not collected:
-            return self._fallback_collect(payload, reason="no results collected")
-        return collected
-
-    def _fallback_collect(self, payload: dict, reason: str) -> list[SourcePostPayload]:
+    def _fallback_collect(self, payload: dict, reason: str, login_state: dict) -> list[SourcePostPayload]:
         posts = self.mock.collect(payload)
         for post in posts:
             raw = post.raw_metrics or {}
@@ -108,15 +63,31 @@ class SafePlaywrightCollectorProvider:
             "mode": "safe_playwright",
             "failure_category": "runtime",
             "reason": reason,
-            "source_posts": len(posts),
+            "candidate_count": len(self.collect_candidates(payload)),
+            "detail_hydrated_count": len(posts),
+            "accepted_count": len(posts),
+            "login_state": login_state,
         }
         return posts
+
+    def _login_state(self) -> dict:
+        return {"storage_state_path": self.settings.playwright_storage_state_path}
+
+    def check_login(self) -> dict:
+        exists = Path(self.settings.playwright_storage_state_path).exists()
+        return {
+            "provider": self.name,
+            "status": "ready" if exists or not self.settings.enable_real_collector else "degraded",
+            "mode": "storage_state" if exists else "missing_storage_state",
+            "storage_state_path": self.settings.playwright_storage_state_path,
+            "reason": "playwright storage state available" if exists else "missing playwright storage state",
+        }
 
     def health(self) -> dict:
         storage_exists = Path(self.settings.playwright_storage_state_path).exists()
         return {
             "status": "ready" if storage_exists or not self.settings.enable_real_collector else "degraded",
-            "reason": "playwright safe collector available" if storage_exists or not self.settings.enable_real_collector else "missing storage state",
+            "reason": "playwright login state available" if storage_exists or not self.settings.enable_real_collector else "missing storage state",
             "storage_state_exists": storage_exists,
         }
 

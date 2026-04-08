@@ -24,10 +24,20 @@ class Settings(BaseSettings):
     enable_real_sync_provider: bool = False
     allow_live_publish: bool = False
 
+    default_run_mode: str = "full"
+    default_publish_send_mode: str = "manual_review"
+    keep_publish_safety_gate: bool = True
+
     playwright_safe_mode: bool = True
     playwright_storage_state_path: str = "./data/playwright/state.json"
     collector_max_pages: int = 3
     collector_action_delay_ms: int = 750
+    collector_scroll_rounds: int = 3
+    collector_max_candidates: int = 12
+    collector_max_detail_items: int = 8
+    collector_max_age_days: int = 365
+    collector_filter_ad_keywords: list[str] = Field(default_factory=lambda: ["商单", "广告", "投放合作", "品牌合作", "推广"])  # noqa: RUF012
+    collector_prefer_content_type: str = "image_text"
 
     scrapling_mode: str = "fixture"
     scrapling_timeout_seconds: int = 30
@@ -36,7 +46,10 @@ class Settings(BaseSettings):
     scrapling_adaptive_selectors: bool = True
     scrapling_max_retries: int = 2
     scrapling_concurrency: int = 1
-    scrapling_user_agent: str = ""
+    scrapling_user_agent: str = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    )
     scrapling_cookies_path: str = "./data/scrapling/cookies.json"
     scrapling_storage_state_path: str = "./data/scrapling/storage_state.json"
     scrapling_keywords_file: str = "./data/collector/keywords.txt"
@@ -69,7 +82,6 @@ class Settings(BaseSettings):
     image_model_timeout_seconds: int = 60
     image_model_max_retries: int = 2
 
-    # Backward-compatible aliases kept only as fallbacks while operators migrate.
     openai_api_key: str = ""
     openai_model_name: str = "gpt-4.1-mini"
     openai_image_model: str = "gpt-image-1"

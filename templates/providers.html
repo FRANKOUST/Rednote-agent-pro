@@ -1,33 +1,5 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ app_name }} Providers</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 0; background: #f6f1ea; color: #1b1b1b; }
-      .wrap { max-width: 1100px; margin: 0 auto; padding: 32px; }
-      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
-      .card { background: #ffffff; border-radius: 20px; padding: 24px; border: 1px solid #ead8c8; }
-      pre { white-space: pre-wrap; word-break: break-word; background: #faf5ef; padding: 12px; border-radius: 12px; }
-      a { color: #d94841; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <p><a href="/">Back to dashboard</a></p>
-      <h1>Provider Status</h1>
-      <div class="grid">
-        {% for name, item in diagnostics.items() %}
-          <div class="card">
-            <h2>{{ name }}</h2>
-            <p><strong>Configured:</strong> {{ item.configured }}</p>
-            <p><strong>Active:</strong> {{ item.active }}</p>
-            <p><strong>Health:</strong> {{ health[name].status }} - {{ health[name].reason }}</p>
-            <pre>{{ item | tojson(indent=2) }}</pre>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-  </body>
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{{ app_name }} Providers</title><style>body{font-family:Arial,sans-serif;margin:0;background:#f6f1ea;color:#1b1b1b}.wrap{max-width:1100px;margin:0 auto;padding:32px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.card{background:#fff;border-radius:20px;padding:24px;border:1px solid #ead8c8}pre{white-space:pre-wrap;word-break:break-word;background:#faf5ef;padding:12px;border-radius:12px}a{color:#d94841}</style></head>
+  <body><div class="wrap"><p><a href="/">Back to dashboard</a></p><h1>Provider Status</h1><div class="grid">{% for name, item in diagnostics.items() %}<div class="card"><h2>{{ name }}</h2><p><strong>Configured:</strong> {{ item.configured }}</p><p><strong>Active:</strong> {{ item.active }}</p><p><strong>Health:</strong> {{ health[name].status }} - {{ health[name].reason }}</p><pre>{{ item | tojson(indent=2) }}</pre></div>{% endfor %}</div><div class="grid" style="margin-top:20px;"><div class="card"><h2>Collector Login</h2><pre>{{ collector_login | tojson(indent=2) }}</pre></div><div class="card"><h2>Publish Login</h2><pre>{{ publish_login | tojson(indent=2) }}</pre></div></div></div></body>
 </html>

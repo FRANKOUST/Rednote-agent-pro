@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.core.config import get_settings
-from app.domain.models import DraftPayload, PublishPayload
+from app.domain.models import DraftPayload, PublishPackagePayload, PublishPayload
 from app.infrastructure.providers.publisher.browser_safe_stub import XiaohongshuBrowserSafeStubProvider
 
 
@@ -14,7 +14,7 @@ class XiaohongshuBrowserLiveProvider:
         self.settings = get_settings()
         self.safe = XiaohongshuBrowserSafeStubProvider()
 
-    def publish(self, draft: DraftPayload) -> PublishPayload:
+    def publish(self, draft: DraftPayload | PublishPackagePayload) -> PublishPayload:
         if not Path(self.settings.playwright_storage_state_path).exists():
             return self.safe.publish(draft)
         if not self._playwright_available():
@@ -32,7 +32,7 @@ class XiaohongshuBrowserLiveProvider:
         except Exception:
             return False
 
-    def _publish_with_playwright(self, draft: DraftPayload) -> PublishPayload:
+    def _publish_with_playwright(self, draft: DraftPayload | PublishPackagePayload) -> PublishPayload:
         from playwright.sync_api import sync_playwright
 
         with sync_playwright() as playwright:
@@ -44,3 +44,13 @@ class XiaohongshuBrowserLiveProvider:
             context.close()
             browser.close()
         return self.safe.publish(draft)
+
+    def check_login(self) -> dict:
+        exists = Path(self.settings.playwright_storage_state_path).exists()
+        return {"provider": self.name, "status": "ready" if exists else "degraded", "mode": "browser", "storage_state_path": self.settings.playwright_storage_state_path, "reason": "publish browser login ready" if exists else "missing browser storage state"}
+
+    def health(self) -> dict:
+        return self.check_login()
+
+    def diagnostics(self) -> dict:
+        return {"provider_type": "browser_live", "storage_state_path": self.settings.playwright_storage_state_path}

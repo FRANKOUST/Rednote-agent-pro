@@ -1,44 +1,18 @@
-# Acceptance Checklist
+# ACCEPTANCE_CHECKLIST
 
-## Architecture
-
-- [x] REST, MCP, and Web Console share one business layer
-- [x] Provider registry owns collector / model / sync selection
-- [x] Safety gates remain in front of publish and live external actions
-
-## Collector
-
-- [x] `scrapling_xhs` provider is wired through the registry
-- [x] Search collection path works in fixture/dry-run mode
-- [x] Detail collection path works in fixture/dry-run mode
-- [x] Collector runs persist diagnostics and summaries
-- [ ] Real authenticated Scrapling validation recorded
-
-## Sync
-
-- [x] `feishu_cli` provider is wired through the registry
-- [x] Base-first payload + command builder exists
-- [x] Dry-run sync path records SyncRun and SyncRecord
-- [x] CLI stdout/stderr and retry metadata are captured into diagnostics
-- [ ] Real authenticated lark-cli validation recorded
-
-## Model
-
-- [x] Unified env-driven model provider config exists
-- [x] `openai_compatible` provider exists
-- [x] `custom_model_router` provider exists
-- [x] Analyze / topic / draft stages use the shared provider path
-- [x] Schema validation guards model output
-- [ ] Real model-provider validation recorded
-
-## Operator Experience
-
-- [x] Dashboard shows provider health and recent runs
-- [x] Web Console exposes collector runs, sync runs, and provider status
-- [x] REST exposes diagnostics / health / run details
-- [x] MCP exposes collector search/detail and provider status tools
-
-## Validation
-
-- [x] Test suite passes (`54 passed`)
-- [ ] Full small-scale real validation report completed with external credentials
+- [x] 已有统一内容流水线服务，显式支持 8 个阶段
+- [x] 支持一键完整链路与逐步执行两种模式
+- [x] crawl 已引入“两阶段采集 + 登录态复用 + 过滤”思路
+- [x] SourcePost / run / audit / diagnostics / provider health 已接入
+- [x] Analysis / Topic / Draft schema 已升级为运营视角
+- [x] prompt 模板已版本化并带 schema 约束
+- [x] publish 已拆为 prepare / preview / send
+- [x] sync 已拆为 sync_crawled / sync_generated
+- [x] MCP 已提供高阶运营动作工具
+- [x] Web Console 已升级为内容助手工作台
+- [x] 测试通过
+- [x] README / DEMO / SHOWCASE / RUNBOOK / DESIGN / TEMPLATE / WORKBENCH 文档已更新
+- [ ] 真实 XHS 登录态验证（外部 blocker）
+- [ ] 真实 model provider 验证（外部 blocker）
+- [ ] 真实 publish 权限验证（外部 blocker）
+- [ ] 真实 Feishu sync 验证（外部 blocker）

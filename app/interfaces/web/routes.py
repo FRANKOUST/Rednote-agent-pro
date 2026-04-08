@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -21,24 +23,13 @@ def dashboard(request: Request) -> HTMLResponse:
 @router.get("/console/providers", response_class=HTMLResponse)
 def providers_page(request: Request) -> HTMLResponse:
     service = get_pipeline_service()
-    return templates.TemplateResponse(
-        request,
-        "providers.html",
-        {"request": request, "app_name": get_settings().app_name, "diagnostics": service.provider_diagnostics(), "health": service.provider_health()},
-    )
+    return templates.TemplateResponse(request, "providers.html", {"request": request, "app_name": get_settings().app_name, "diagnostics": service.provider_diagnostics(), "health": service.provider_health(), "collector_login": service.check_collector_login(), "publish_login": service.check_publish_login()})
 
 
 @router.get("/console/entities", response_class=HTMLResponse)
 def entities_view(request: Request) -> HTMLResponse:
     service = get_pipeline_service()
-    context = {
-        "request": request,
-        "app_name": get_settings().app_name,
-        "source_posts": service.list_source_posts()["items"][:20],
-        "analysis_reports": service.list_analysis_reports()["items"][:20],
-        "topic_suggestions": service.list_topic_suggestions()["items"][:20],
-        "image_assets": service.list_image_assets()["items"][:20],
-    }
+    context = {"request": request, "app_name": get_settings().app_name, "source_posts": service.list_source_posts()["items"][:20], "analysis_reports": service.list_analysis_reports()["items"][:20], "topic_suggestions": service.list_topic_suggestions()["items"][:20], "image_assets": service.list_image_assets()["items"][:20]}
     return templates.TemplateResponse(request, "entities.html", context)
 
 
@@ -64,12 +55,12 @@ def image_asset_detail(request: Request, image_id: str) -> HTMLResponse:
 
 @router.get("/console/runs/{run_id}", response_class=HTMLResponse)
 def run_detail(request: Request, run_id: str) -> HTMLResponse:
-    return templates.TemplateResponse(request, "entity_detail.html", {"request": request, "app_name": get_settings().app_name, "title": "Workflow Run", "item": get_pipeline_service().get_run(run_id)})
+    return templates.TemplateResponse(request, "entity_detail.html", {"request": request, "app_name": get_settings().app_name, "title": "Pipeline Run", "item": get_pipeline_service().get_run(run_id)})
 
 
 @router.get("/console/runs/{run_id}/diagnostics", response_class=HTMLResponse)
 def run_diagnostics(request: Request, run_id: str) -> HTMLResponse:
-    return templates.TemplateResponse(request, "diagnostics.html", {"request": request, "app_name": get_settings().app_name, "title": "Diagnostics", "items": get_pipeline_service().get_run_diagnostics(run_id)["items"]})
+    return templates.TemplateResponse(request, "diagnostics.html", {"request": request, "app_name": get_settings().app_name, "title": "Stage Diagnostics", "items": get_pipeline_service().get_run_diagnostics(run_id)["items"]})
 
 
 @router.get("/console/collector-runs", response_class=HTMLResponse)
@@ -107,34 +98,12 @@ def login(operator_key: str = Form(...)) -> RedirectResponse:
     return response
 
 
-@router.post("/console/pipeline-runs")
-def start_pipeline(keywords: str = Form(...)) -> RedirectResponse:
+@router.post("/console/content-pipeline/runs")
+def start_pipeline(keywords: str = Form(...), topic_words: str = Form(""), run_mode: str = Form("full")) -> RedirectResponse:
     keyword_list = [item.strip() for item in keywords.split(",") if item.strip()]
-    get_pipeline_service().create_run({"keywords": keyword_list, "min_likes": 0, "min_favorites": 0, "min_comments": 0, "auto_publish": False, "dry_run": True})
+    topic_word_list = [item.strip() for item in topic_words.split(",") if item.strip()]
+    get_pipeline_service().create_run({"keywords": keyword_list, "topic_words": topic_word_list or keyword_list, "run_mode": run_mode, "dry_run": True})
     return RedirectResponse("/", status_code=303)
-
-
-@router.post("/console/collector-runs/search")
-def start_search_from_console(keywords: str = Form(...)) -> RedirectResponse:
-    keyword_list = [item.strip() for item in keywords.split(",") if item.strip()]
-    get_pipeline_service().start_collector_run({"keywords": keyword_list, "dry_run": True}, "search")
-    return RedirectResponse("/console/collector-runs", status_code=303)
-
-
-@router.post("/console/collector-runs/detail")
-def start_detail_from_console(note_ids: str = Form(...)) -> RedirectResponse:
-    note_id_list = [item.strip() for item in note_ids.split(",") if item.strip()]
-    get_pipeline_service().start_collector_run({"note_ids": note_id_list, "dry_run": True}, "detail")
-    return RedirectResponse("/console/collector-runs", status_code=303)
-
-
-@router.post("/console/sync-runs")
-def start_sync_from_console(entity_type: str = Form(...), payload_json: str = Form(...)) -> RedirectResponse:
-    import json
-
-    payload = json.loads(payload_json)
-    get_pipeline_service().start_sync_run(entity_type, payload, True)
-    return RedirectResponse("/console/sync-runs", status_code=303)
 
 
 @router.post("/console/drafts/{draft_id}/approve")
@@ -143,7 +112,29 @@ def approve_from_console(draft_id: str) -> RedirectResponse:
     return RedirectResponse("/", status_code=303)
 
 
-@router.post("/console/drafts/{draft_id}/publish")
-def publish_from_console(draft_id: str) -> RedirectResponse:
-    get_pipeline_service().publish_draft(draft_id)
+@router.post("/console/drafts/{draft_id}/publish-preview")
+def preview_from_console(draft_id: str) -> RedirectResponse:
+    get_pipeline_service().preview_publish(draft_id)
     return RedirectResponse("/", status_code=303)
+
+
+@router.post("/console/drafts/{draft_id}/publish-send")
+def publish_from_console(draft_id: str) -> RedirectResponse:
+    get_pipeline_service().send_publish(draft_id, True)
+    return RedirectResponse("/", status_code=303)
+
+
+@router.post("/console/runs/{run_id}/sync/{sync_type}")
+def sync_from_console(run_id: str, sync_type: str) -> RedirectResponse:
+    if sync_type == "crawled":
+        get_pipeline_service().sync_crawled(run_id, True)
+    else:
+        get_pipeline_service().sync_generated(run_id, True)
+    return RedirectResponse("/", status_code=303)
+
+
+@router.post("/console/sync-runs")
+def start_sync_from_console(entity_type: str = Form(...), payload_json: str = Form(...)) -> RedirectResponse:
+    payload = json.loads(payload_json)
+    get_pipeline_service().start_sync_run(entity_type, payload, True)
+    return RedirectResponse("/console/sync-runs", status_code=303)

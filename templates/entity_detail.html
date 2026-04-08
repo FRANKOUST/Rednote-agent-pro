@@ -1,24 +1,5 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ app_name }} {{ title }}</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 0; background: #f6f1ea; color: #1b1b1b; }
-      .wrap { max-width: 960px; margin: 0 auto; padding: 32px; }
-      .card { background: #ffffff; border-radius: 20px; padding: 24px; border: 1px solid #ead8c8; }
-      pre { white-space: pre-wrap; word-break: break-word; background: #faf5ef; padding: 12px; border-radius: 12px; }
-      a { color: #d94841; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <p><a href="/console/entities">Back to entities</a></p>
-      <div class="card">
-        <h1>{{ item.title or title }}</h1>
-        <pre>{{ item | tojson(indent=2) }}</pre>
-      </div>
-    </div>
-  </body>
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{{ app_name }} {{ title }}</title><style>body{font-family:Arial,sans-serif;margin:0;background:#f6f1ea;color:#1b1b1b}.wrap{max-width:960px;margin:0 auto;padding:32px}.card{background:#fff;border-radius:20px;padding:24px;border:1px solid #ead8c8}pre{white-space:pre-wrap;word-break:break-word;background:#faf5ef;padding:12px;border-radius:12px}a{color:#d94841}</style></head>
+  <body><div class="wrap"><p><a href="/">Back to dashboard</a></p><div class="card"><h1>{{ item.title or item.headline or title }}</h1><pre>{{ item | tojson(indent=2) }}</pre></div></div></body>
 </html>

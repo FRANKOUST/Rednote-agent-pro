@@ -1,51 +1,52 @@
-# OPERATOR RUNBOOK
+# OPERATOR_RUNBOOK
 
-## 1. Install / prepare
+## 1. 启动
 
-- Python 3.10+
-- `pip install -e .[dev,collectors]`
-- `scrapling install` if you want live browser fetchers
-- install and authenticate `lark-cli`
+```bash
+pip install -e .[dev]
+pytest -q
+uvicorn app.main:app --reload
+```
 
-## 2. Configure
+## 2. 打开工作台
 
-Copy `.env.example` to `.env` and set at minimum:
-- database/media paths
-- `XHS_DEFAULT_COLLECTOR_PROVIDER=scrapling_xhs`
-- `XHS_DEFAULT_SYNC_PROVIDER=feishu_cli`
-- `XHS_DEFAULT_MODEL_PROVIDER=custom_model_router` or `openai_compatible`
+- 浏览器访问 `/`
+- 如启用 auth，则先走 `/login`
 
-## 3. Safe local verification
+## 3. 常用操作
 
-- Keep `XHS_SCRAPLING_MODE=fixture`
-- Keep `XHS_FEISHU_CLI_DRY_RUN=true`
-- Keep all `XHS_ENABLE_REAL_*` flags `false`
-- Run `pytest -q`
-- Start the app and trigger pipeline/collector/sync runs from REST or the Web Console
+### 一键完整链路
+- 在首页输入 keywords / topic_words
+- 选择 `full`
+- 提交后查看最新 run 的 8 阶段状态
 
-## 4. Controlled live collector validation
+### 逐步执行
+- 在首页选择 `step`
+- 创建 staged run
+- 再通过 REST / MCP / Web 逐阶段推进
 
-- Set `XHS_ENABLE_REAL_COLLECTOR=true`
-- Set `XHS_SCRAPLING_MODE=live`
-- Provide cookies/storage state
-- Start with one keyword or one note id only
-- Review `/api/providers/health`, `/api/collector-runs`, and `/api/pipeline-runs/{id}/diagnostics`
+### 审核与发布
+- 草稿默认进入 review pending
+- approve 后可执行 publish prepare / preview / send
+- 默认 send 仍以 dry-run 为主
 
-## 5. Controlled live model validation
+### 同步
+- `sync_crawled`：同步采集内容 / 分析摘要 / 候选源数据
+- `sync_generated`：同步选题 / 草稿 / 审核 / 发布结果
 
-- Set `XHS_ENABLE_REAL_MODEL_PROVIDER=true`
-- Provide `XHS_MODEL_API_KEY`, `XHS_MODEL_BASE_URL`, `XHS_MODEL_NAME`
-- Re-run a single dry pipeline request and confirm schema-validated outputs appear in reports/drafts
+## 4. 故障排查
 
-## 6. Controlled live sync validation
+优先查看：
 
-- Set `XHS_ENABLE_REAL_SYNC_PROVIDER=true`
-- Set `XHS_FEISHU_CLI_DRY_RUN=false`
-- Confirm `lark-cli --as <identity>` can reach the target Base
-- Trigger `/api/sync-runs` before using the full pipeline
+- `/console/providers`
+- `/console/runs/{run_id}/diagnostics`
+- `/api/providers/status`
+- `/api/audit-logs`
+- `/api/sync-records`
 
-## 7. Publish safety
+## 5. 安全规则
 
-- Manual approval is always required before publish
-- Leave `XHS_ALLOW_LIVE_PUBLISH=false` unless explicitly testing a safe live publisher
-- Inspect `audit_logs`, `publish_jobs`, and `sync_records` after every publish attempt
+- 默认人工审核后发布
+- 默认 dry-run first
+- 不要绕过 publish safety gate
+- 没有真实权限时，只做 fixture/mock/safe-stub 验证

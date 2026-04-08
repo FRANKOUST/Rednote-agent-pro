@@ -3,7 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from app.domain.models import AnalysisPayload, DraftPayload, ImagePayload, PublishPayload, SourcePostPayload, TopicPayload
+from app.domain.models import (
+    AnalysisPayload,
+    CollectorCandidatePayload,
+    DraftPayload,
+    ImagePayload,
+    ImagePlanPayload,
+    PublishPackagePayload,
+    PublishPayload,
+    SourcePostPayload,
+    TopicPayload,
+)
 
 
 @dataclass(slots=True)
@@ -18,6 +28,12 @@ class CollectorProvider(Protocol):
     name: str
 
     def collect(self, payload: dict) -> list[SourcePostPayload]:
+        ...
+
+    def collect_candidates(self, payload: dict) -> list[CollectorCandidatePayload]:
+        ...
+
+    def check_login(self) -> dict:
         ...
 
     def health(self) -> dict:
@@ -37,6 +53,9 @@ class LanguageModelProvider(Protocol):
         ...
 
     def generate_draft(self, topic: TopicPayload, analysis: AnalysisPayload) -> DraftPayload:
+        ...
+
+    def plan_image(self, draft: DraftPayload, analysis: AnalysisPayload | None = None) -> ImagePlanPayload:
         ...
 
     def health(self) -> dict:
@@ -62,7 +81,10 @@ class ImageProvider(Protocol):
 class PublisherProvider(Protocol):
     name: str
 
-    def publish(self, draft: DraftPayload) -> PublishPayload:
+    def publish(self, draft: DraftPayload | PublishPackagePayload) -> PublishPayload:
+        ...
+
+    def check_login(self) -> dict:
         ...
 
     def health(self) -> dict:

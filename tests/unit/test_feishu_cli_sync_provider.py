@@ -4,7 +4,7 @@ from pathlib import Path
 from app.db.session import reset_db_state
 
 
-def test_feishu_cli_sync_provider_builds_base_command(tmp_path: Path) -> None:
+def test_feishu_cli_sync_provider_builds_crawled_command_and_payload(tmp_path: Path) -> None:
     reset_db_state()
     os.environ["XHS_FEISHU_CLI_BIN"] = "lark-cli"
     os.environ["XHS_FEISHU_SYNC_MODE"] = "base"
@@ -14,23 +14,25 @@ def test_feishu_cli_sync_provider_builds_base_command(tmp_path: Path) -> None:
     from app.infrastructure.providers.feishu.cli import FeishuCLISyncProvider
 
     provider = FeishuCLISyncProvider()
-    command = provider.build_command("publish_job", tmp_path / "payload.json", dry_run=True)
+    payload = provider.build_payload("sync_crawled", {"title": "demo", "run_id": "run-1"}, dry_run=True)
+    command = provider.build_command("sync_crawled", tmp_path / "payload.json", dry_run=True)
 
+    assert payload["business_type"] == "sync_crawled"
     assert command[:4] == ["lark-cli", "--as", "user", "base"]
-    assert "--table-id" in command
     assert "--dry-run" in command
 
 
-def test_feishu_cli_sync_provider_returns_structured_dry_run_payload() -> None:
+def test_feishu_cli_sync_provider_returns_structured_dry_run_payload_for_generated_sync() -> None:
     reset_db_state()
     os.environ["XHS_FEISHU_CLI_DRY_RUN"] = "true"
 
     from app.infrastructure.providers.feishu.cli import FeishuCLISyncProvider
 
-    result = FeishuCLISyncProvider().sync("publish_job", {"title": "demo"})
+    result = FeishuCLISyncProvider().sync("sync_generated", {"title": "demo"})
 
     assert result["status"] == "synced"
     assert result["dry_run"] is True
+    assert result["payload"]["business_type"] == "sync_generated"
     assert result["diagnostics"]["mode"] == "dry_run"
 
 

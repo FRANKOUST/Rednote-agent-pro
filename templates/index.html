@@ -6,111 +6,103 @@
     <title>{{ app_name }}</title>
     <style>
       body { font-family: Arial, sans-serif; margin: 0; background: #f6f1ea; color: #1b1b1b; }
-      .wrap { max-width: 1180px; margin: 0 auto; padding: 32px; }
-      .hero { background: linear-gradient(135deg, #ffffff, #ffe7d6); border: 1px solid #f2c7a7; border-radius: 24px; padding: 28px; }
-      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 24px; }
-      .card { background: #ffffff; border-radius: 20px; padding: 20px; border: 1px solid #ead8c8; }
-      h1, h2, h3 { margin-top: 0; }
-      ul { padding-left: 18px; }
+      .wrap { max-width: 1200px; margin: 0 auto; padding: 32px; }
+      .hero, .card { background: #ffffff; border-radius: 20px; border: 1px solid #ead8c8; }
+      .hero { padding: 28px; background: linear-gradient(135deg, #ffffff, #ffe7d6); }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 20px; }
+      .card { padding: 20px; }
+      .stages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+      .stage { padding: 12px; border-radius: 14px; background: #faf5ef; border: 1px solid #f0e3d6; }
+      .ok { border-color: #b7ddc7; background: #f4fbf6; }
+      .warn { border-color: #f2cf8c; background: #fff8ea; }
       button { background: #d94841; color: white; border: 0; border-radius: 999px; padding: 10px 16px; cursor: pointer; }
-      input, textarea { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #d9c3b1; margin: 12px 0; box-sizing: border-box; }
-      textarea { min-height: 96px; }
+      input, select, textarea { width: 100%; padding: 10px; border-radius: 12px; border: 1px solid #d9c3b1; margin: 8px 0; box-sizing: border-box; }
       a { color: #d94841; }
-      .draft { border-top: 1px solid #f0e3d6; padding-top: 12px; margin-top: 12px; }
+      pre { white-space: pre-wrap; background: #faf5ef; padding: 12px; border-radius: 12px; }
     </style>
   </head>
   <body>
     <div class="wrap">
       <section class="hero">
-        <h1>{{ app_name }}</h1>
-        <p>Controlled, auditable Xiaohongshu workflow for crawl → analyze → topic → draft → review → publish(dry-run first) → sync.</p>
-        <p><a href="/console/entities">Entity outputs</a> | <a href="/console/collector-runs">Collector runs</a> | <a href="/console/sync-runs">Sync runs</a> | <a href="/console/providers">Provider status</a></p>
+        <h1>内容助手工作台</h1>
+        <p>{{ app_name }}：围绕 crawl → analyze → topic → draft → image → review → publish → sync 的统一内容流水线。</p>
+        <p><a href="/console/entities">Entity outputs</a> | <a href="/console/providers">Provider Status</a> | <a href="/console/collector-runs">Collector runs</a> | <a href="/console/sync-runs">Sync runs</a></p>
       </section>
 
       <section class="grid">
         <div class="card">
-          <h2>Run full pipeline</h2>
-          <form method="post" action="/console/pipeline-runs">
-            <label for="keywords">Keywords</label>
-            <input id="keywords" name="keywords" value="咖啡,护肤" />
-            <button type="submit">Run dry pipeline</button>
+          <h2>一键跑完整链路</h2>
+          <form method="post" action="/console/content-pipeline/runs">
+            <label>Keywords</label>
+            <input name="keywords" value="咖啡,护肤" />
+            <label>Topic Words</label>
+            <input name="topic_words" value="咖啡,护肤" />
+            <input type="hidden" name="run_mode" value="full" />
+            <button type="submit">Run full pipeline</button>
           </form>
         </div>
         <div class="card">
-          <h2>Trigger Scrapling search</h2>
-          <form method="post" action="/console/collector-runs/search">
-            <label for="collector-keywords">Keywords</label>
-            <input id="collector-keywords" name="keywords" value="咖啡,健身" />
-            <button type="submit">Run search collection</button>
-          </form>
-        </div>
-        <div class="card">
-          <h2>Trigger Scrapling detail</h2>
-          <form method="post" action="/console/collector-runs/detail">
-            <label for="note-ids">Note IDs</label>
-            <input id="note-ids" name="note_ids" value="note-001,note-002" />
-            <button type="submit">Run detail collection</button>
-          </form>
-        </div>
-        <div class="card">
-          <h2>Trigger Feishu sync dry-run</h2>
-          <form method="post" action="/console/sync-runs">
-            <label for="entity-type">Entity type</label>
-            <input id="entity-type" name="entity_type" value="publish_job" />
-            <label for="payload-json">Payload JSON</label>
-            <textarea id="payload-json" name="payload_json">{"title":"demo","published_url":"https://example.test/post/demo"}</textarea>
-            <button type="submit">Run sync dry-run</button>
+          <h2>逐步执行</h2>
+          <form method="post" action="/console/content-pipeline/runs">
+            <label>Keywords</label>
+            <input name="keywords" value="家装" />
+            <label>Topic Words</label>
+            <input name="topic_words" value="家装" />
+            <input type="hidden" name="run_mode" value="step" />
+            <button type="submit">Create staged run</button>
           </form>
         </div>
       </section>
 
       <section class="grid">
         <div class="card">
-          <h2>Recent Runs</h2>
-          {% if runs %}<ul>{% for run in runs %}<li><a href="/console/runs/{{ run.id }}">{{ run.status }} - {{ run.current_stage }} - {{ run.id }}</a></li>{% endfor %}</ul>{% else %}<p>No runs yet.</p>{% endif %}
+          <h2>最近 Runs</h2>
+          {% if runs %}<ul>{% for run in runs %}<li><a href="/console/runs/{{ run.id }}">{{ run.status }} · {{ run.current_stage }} · {{ run.id }}</a></li>{% endfor %}</ul>{% else %}<p>No runs yet.</p>{% endif %}
         </div>
         <div class="card">
-          <h2>Draft Queue</h2>
-          {% if drafts %}
-            {% for draft in drafts %}
-              <div class="draft">
-                <h3>{{ draft.title }}</h3>
-                <p>Status: <strong>{{ draft.status }}</strong></p>
-                <p>{{ draft.review_notes }}</p>
-                {% if draft.status == "review_pending" %}
-                  <form method="post" action="/console/drafts/{{ draft.id }}/approve"><button type="submit">Approve</button></form>
-                {% elif draft.status == "approved" %}
-                  <form method="post" action="/console/drafts/{{ draft.id }}/publish"><button type="submit">Publish</button></form>
-                {% endif %}
-              </div>
-            {% endfor %}
-          {% else %}
-            <p>No drafts yet.</p>
-          {% endif %}
-        </div>
-      </section>
-
-      <section class="grid">
-        <div class="card">
-          <h2>Observability</h2>
-          <ul>
-            <li>Workflow runs: {{ observability.workflow_runs }}</li>
-            <li>Source posts: {{ observability.source_posts }}</li>
-            <li>Drafts: {{ observability.content_drafts }}</li>
-            <li>Sync records: {{ observability.sync_records }}</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h2>Provider Health</h2>
+          <h2>健康与登录检查</h2>
           <ul>
             <li>Collector: {{ provider_health.collector.status }} - {{ provider_health.collector.reason }}</li>
-            <li>LLM: {{ provider_health.language_model.status }} - {{ provider_health.language_model.reason }}</li>
-            <li>Image: {{ provider_health.image.status }} - {{ provider_health.image.reason }}</li>
             <li>Publisher: {{ provider_health.publisher.status }} - {{ provider_health.publisher.reason }}</li>
-            <li>Sync: {{ provider_health.sync.status }} - {{ provider_health.sync.reason }}</li>
+            <li>Collector Login: {{ collector_login.mode }} - {{ collector_login.reason }}</li>
+            <li>Publish Login: {{ publish_login.mode }} - {{ publish_login.reason }}</li>
           </ul>
         </div>
       </section>
+
+      {% if latest_run %}
+      <section class="card" style="margin-top:20px;">
+        <h2>Latest Run</h2>
+        <p><a href="/console/runs/{{ latest_run.id }}">{{ latest_run.id }}</a> · {{ latest_run.status }}</p>
+        <div class="stages">
+          {% for stage_name in stage_order %}
+            {% set stage = latest_run.stage_map.get(stage_name) %}
+            <div class="stage {% if stage and stage.status == 'completed' %}ok{% else %}warn{% endif %}">
+              <strong>{{ stage_name }}</strong><br />
+              {{ stage.status if stage else 'pending' }}<br />
+              {{ stage.provider if stage else '' }}
+            </div>
+          {% endfor %}
+        </div>
+        {% if latest_run.draft_ids %}
+        <h3>Draft Queue</h3>
+        {% for draft in drafts %}
+          {% if draft.id in latest_run.draft_ids %}
+            <div class="stage" style="margin-top:10px;">
+              <strong>{{ draft.headline }}</strong><br />Status: {{ draft.status }}<br />
+              {% if draft.status == 'review_pending' %}
+                <form method="post" action="/console/drafts/{{ draft.id }}/approve"><button type="submit">Approve</button></form>
+              {% endif %}
+              <form method="post" action="/console/drafts/{{ draft.id }}/publish-preview"><button type="submit">Preview publish</button></form>
+              <form method="post" action="/console/drafts/{{ draft.id }}/publish-send"><button type="submit">Send publish (dry-run)</button></form>
+            </div>
+          {% endif %}
+        {% endfor %}
+        {% endif %}
+        <form method="post" action="/console/runs/{{ latest_run.id }}/sync/crawled"><button type="submit">Sync crawled</button></form>
+        <form method="post" action="/console/runs/{{ latest_run.id }}/sync/generated"><button type="submit">Sync generated</button></form>
+      </section>
+      {% endif %}
     </div>
   </body>
 </html>

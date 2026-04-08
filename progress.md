@@ -13,10 +13,17 @@
 - Replaced MediaCrawler-oriented docs/config with Scrapling/lark-cli/model-router operator docs.
 - Replaced outdated provider tests and verified the repository with `pytest -q` (`54 passed`).
 
+## 2026-04-08
+
+- Audited the repo against the new content workbench brief and wrote the execution plan to `docs/superpowers/plans/2026-04-08-content-workbench-upgrade.md`.
+- Upgraded the shared business layer into an explicit 8-stage content pipeline service with full-run and staged execution modes.
+- Reworked crawl semantics around candidate collection, detail hydration, filtering, login-state reuse metadata, and SourcePost/run/audit/diagnostics integration.
+- Rebuilt the analysis/topic/draft/image-planning contracts into operator-facing schemas backed by versioned prompt templates.
+- Split publishing into prepare/preview/send and sync into sync_crawled/sync_generated semantics while keeping the safety gate and dry-run defaults.
+- Reworked REST, MCP, and Web surfaces into a content assistant workbench while preserving legacy aliases for compatibility.
+- Refreshed README, demo/showcase, runbook, readiness, design, prompt, and workbench docs around the new productized flow.
+- Re-verified the repository with `pytest -q` (`56 passed`).
+
 ## Current State
 
-The project now reaches the requested “small-scale real-use ready except external credentials/login state” stage:
-- Collector: Scrapling provider wired, search/detail dry-run harness ready.
-- Sync: lark-cli provider wired, Base-first command path ready.
-- Model: env-driven OpenAI-compatible/router path ready for analyze/topic/draft.
-- Surfaces: REST / MCP / Web share the same service layer and provider status visibility.
+The repo now meets the requested “产品层升级 + schema 重构 + 发布与同步语义重构 + MCP/Web 前台重构” bar in code/tests/docs. Remaining work is limited to real external credential/login validation.

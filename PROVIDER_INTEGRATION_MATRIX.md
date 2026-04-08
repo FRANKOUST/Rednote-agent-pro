@@ -1,14 +1,16 @@
-# Provider Integration Matrix
+# PROVIDER_INTEGRATION_MATRIX
 
-| Capability | Registry Key(s) | Default Mode | Live Requirement | Safety Default | Shared Surface |
-|---|---|---|---|---|---|
-| Collector | `scrapling_xhs`, `mock`, `playwright` | `scrapling_xhs` in fixture mode | Scrapling fetchers installed + XHS auth state | Fixture / dry-run first | REST + MCP + Web + service |
-| Model | `openai_compatible`, `custom_model_router`, `mock` | `custom_model_router` | OpenAI-compatible `base_url` + `api_key` + `model` | Safe fallback to stub/mock | REST + MCP + Web + service |
-| Image | `mock`, `openai_compatible` | `mock` | OpenAI-compatible image endpoint + key | Mock first | REST + Web + service |
-| Publisher | `mock`, `api`, `browser` | `mock` | Publish credential or browser state | Manual review + live gate | REST + Web + service |
-| Sync | `feishu_cli`, `mock` | `feishu_cli` dry-run | Authenticated `lark-cli` plus target Base/Sheet | Dry-run first | REST + MCP + Web + service |
+| Provider Domain | Current Path | Default Mode | Real Validation Needed |
+|---|---|---|---|
+| Collector | `mock` / `scrapling_xhs` / `playwright` | fixture / safe fallback | XHS storage state or cookies |
+| Model | `mock` / `custom_model_router` / `openai_compatible` | mock-safe | OpenAI-compatible endpoint |
+| Image | `mock` / `openai_compatible` | mock-safe | image endpoint |
+| Publisher | `mock` / `api_safe_stub` / `browser_safe_stub` / live variants | safe preview first | publish token or browser state |
+| Sync | `mock` / `feishu_cli` | dry-run first | `lark-cli` login + target permission |
 
-## Notes
+## 统一约束
 
-- No provider implementation is called directly from route handlers; routes go through `PipelineService`.
-- Real external actions are opt-in through env flags and still retain operator-visible diagnostics.
+- 所有入口都必须走统一 service layer
+- provider 只负责能力实现，不承载 route / UI 逻辑
+- diagnostics / health / login check 需要可独立查看
+- 所有 live path 都必须有 safe fallback
